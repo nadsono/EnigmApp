@@ -1,6 +1,6 @@
 # Auditoria visual de referência — snapshot inicial
 
-Auditoria estática somente de leitura, executada em 2026-11-04 na raiz canônica, sobre src (40 arquivos; 28.261 linhas). O próprio script avisa que contagem é heurística; confirmar na interface antes de mudar código.
+Auditoria estática somente de leitura, executada em 2026-11-04 na raiz canônica, sobre src (44 arquivos; 29.213 linhas). O próprio script avisa que contagem é heurística; confirmar na interface antes de mudar código.
 
 | Sinal observado | Contagem | Leitura inicial |
 |---|---:|---|
@@ -20,3 +20,4 @@ Auditoria estática somente de leitura, executada em 2026-11-04 na raiz canônic
 O produto já usa identidade verde/navy e possui pouca repetição de cartões arredondados, pílulas e degradês. A direção é aperfeiçoar clareza e consistência preservando esse caráter, sem refazer o layout todo.
 
 A execução abaixo da auditoria pode ser repetida com: node .agents/skills/tirar-cara-de-ia/scripts/auditar.mjs src --top 5
+

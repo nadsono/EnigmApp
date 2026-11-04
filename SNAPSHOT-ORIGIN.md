@@ -3,8 +3,8 @@
 - Origem: C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1
 - Destino canônico: C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção)
 - Cópia registrada em: 2026-11-04 18:00 -03:00
-- Arquivos no destino após ajuste: 99
-- Tamanho aproximado: 1,77 MiB
+- Arquivos versionados após reconciliação inicial: 102
+- Tamanho aproximado: 1,82 MiB
 - Origem mantida intacta.
 
 ## Excluído deliberadamente
@@ -23,4 +23,5 @@
 ## Aviso de concorrência
 
 A origem Antigravity pode continuar recebendo a fila de prompts já iniciada. Este snapshot é um ponto no tempo; comparar mudanças após a fila terminar e portar somente alterações revisadas, arquivo a arquivo.
+
 
