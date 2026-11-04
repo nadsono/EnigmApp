@@ -5,9 +5,9 @@
 - A consolidação foi aprovada: uma pasta de produção compartilhada, mantendo o produto Antigravity e integrando futuramente a fundação Supabase do Codex.
 - Pasta canônica: C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção).
 - Snapshot inicial do Antigravity contém 102 arquivos versionados, 1,82 MiB, importados no commit 7cf559bcf8ebfd5ba411f6b38620d2e44f9a70fd. A documentação de consolidação foi registrada depois na branch main.
-- Pastas de origem não foram editadas nem apagadas. A worktree Codex/Supabase permanece com alterações locais não commitadas e deve ser preservada.
-- Antigravity continua ativo na pasta antiga, trabalhando na ficha da parceria; na última leitura, o agente estava consultando EnigmaContext.tsx. Resta um prompt na fila, sobre transições de botões acionadas ao rolar a página. Não abrir esta raiz como segundo escritor até finalizar e reconciliar.
-- A branch `codex/server-hardening` contém o commit de hardening `af96a65`; as mudanças do seletor horizontal em EntradasScreen.tsx estão em andamento nessa mesma branch.
+- As pastas de estudo e a worktree Codex/Supabase original não foram alteradas. A pasta antiga do Antigravity recebeu uma alteração focada em `src/screens/EntradasScreen.tsx`, conforme pedido, porque é a fonte do servidor em `localhost:3001`.
+- Antigravity continua ativo na pasta antiga, trabalhando em `SidebarNav.tsx`. Resta um prompt na fila sobre transições de botões acionadas ao rolar a página; a edição aplicada em EntradasScreen.tsx não conflita com essa tarefa.
+- A branch `codex/server-hardening` contém os commits `af96a65` (hardening) e `b554ad5` (seletor horizontal). A mesma mudança do seletor também foi aplicada à cópia servida pelo Antigravity.
 
 ## O que foi preparado
 
@@ -26,6 +26,7 @@
 - Seeds locais ainda contêm credenciais fictícias para o login de demonstração. Isso é exclusivamente modo local; o fluxo de Auth real ainda precisa ser integrado antes de qualquer uso com pessoas ou dados reais.
 - Não conectamos banco remoto, não aplicamos migrations remotas e não publicamos a aplicação.
 - O servidor local do Antigravity segue ativo; não foi iniciado ou interrompido pelo Codex.
+- Conferência visual no navegador em `localhost:3001` mostrou os filtros de casas coloridos numa faixa única. O scroll do mouse moveu a faixa até o fim e ela foi restaurada ao início.
 
 ## Próximo passo
 
