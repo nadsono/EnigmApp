@@ -37,84 +37,49 @@ export interface SupabaseDatabaseHealth {
   timestamp: string;
 }
 
+function offlineHealth(): SupabaseDatabaseHealth {
+  return {
+    status: 'offline',
+    database: 'not_configured',
+    provider: 'not_configured',
+    region: '',
+    tablesCount: 0,
+    usersCount: 0,
+    housesCount: 0,
+    banksCount: 0,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export async function fetchSupabaseHealth(): Promise<SupabaseDatabaseHealth> {
+  if (!isDirectSupabaseConfigured) return offlineHealth();
+
   try {
     const res = await fetch('/api/health');
-    if (!res.ok) throw new Error('Health check failed');
-    return await res.json();
+    if (!res.ok) return offlineHealth();
+    const health = (await res.json()) as SupabaseDatabaseHealth;
+    return health.status === 'ok' ? health : offlineHealth();
   } catch {
-    return {
-      status: 'offline',
-      database: 'postgresql_supabase',
-      provider: 'supabase_postgres',
-      region: 'us-west2',
-      tablesCount: 19,
-      usersCount: 0,
-      housesCount: 0,
-      banksCount: 0,
-      timestamp: new Date().toISOString(),
-    };
+    return offlineHealth();
   }
 }
 
-export async function syncUsersToSupabasePostgres(users: UserProfile[]): Promise<{
+/**
+ * Database sync is disabled until an authenticated, authorized server-side
+ * write path is implemented. The demo remains local and synthetic.
+ */
+export async function syncUsersToSupabasePostgres(_users: UserProfile[]): Promise<{
   ok: boolean;
   syncedCount: number;
 }> {
-  try {
-    if (supabaseClient) {
-      const rows = users.map((u) => ({
-        id: u.id,
-        name: u.name,
-        short_name: u.shortName,
-        login: u.login,
-        email: u.email,
-        password_hash: u.passwordHash || 'sha256:default',
-        password_plain_fallback: u.password || null,
-        password_updated_at: u.passwordUpdatedAt || null,
-        must_change_password: Boolean(u.mustChangePassword),
-        role: u.role,
-        status: u.status,
-        company_id: u.companyId || 'enigma_grupo',
-        profit_share_percent: u.profitSharePercent,
-        initial_monthly_balance: u.initialMonthlyBalance,
-        phone: u.phone || null,
-        registration_notes: u.registrationNotes || null,
-        created_at: u.createdAt,
-        approved_at: u.approvedAt || null,
-        approved_by: u.approvedBy || null,
-        last_login_at: u.lastLoginAt || null,
-      }));
-      const { error } = await supabaseClient.from('users').upsert(rows, { onConflict: 'id' });
-      if (error) throw error;
-    }
-
-    const res = await fetch('/api/users/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ users }),
-    });
-    if (!res.ok) throw new Error('Sync failed');
-    const data = await res.json();
-    return { ok: true, syncedCount: data.syncedCount ?? users.length };
-  } catch {
-    return { ok: false, syncedCount: 0 };
-  }
+  return { ok: false, syncedCount: 0 };
 }
 
-export async function syncCatalogToSupabasePostgres(payload: {
+/** Catalog sync is disabled while the connected backend is not configured. */
+export async function syncCatalogToSupabasePostgres(_payload: {
   houses: HouseCatalogItem[];
   banks: BankCatalogItem[];
   customCriteria: CatalogCustomCriterion[];
 }): Promise<{ ok: boolean }> {
-  try {
-    const res = await fetch('/api/catalog/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return { ok: res.ok };
-  } catch {
-    return { ok: false };
-  }
+  return { ok: false };
 }

@@ -86,9 +86,9 @@ CREATE TABLE IF NOT EXISTS public.ledger_movements (...);`,
   {
     id: '20261028000002_enigma_users_auth_and_rbac',
     filename: 'supabase/migrations/20261028000002_enigma_users_auth_and_rbac.sql',
-    title: 'Supabase 002 · Usuários, Autenticação (Login/Senha), RBAC e Fila de Aprovação Admin',
+    title: 'Supabase 002 · Perfis de Usuário, RBAC e Fila de Aprovação Admin',
     description:
-      'Estrutura a tabela public.users com login, e-mail, hash SHA-256, vínculo UID, papel (admin, operador, socio), status (pendente, ativo, bloqueado), permissões granulares e logs de auditoria.',
+      'Estrutura os perfis de usuário vinculados à autenticação gerenciada pelo Supabase Auth, com papel, status, permissões granulares e logs de auditoria. Senhas não fazem parte do perfil nem do seed SQL.',
     tables: [
       'users',
       'account_operator_permissions',
@@ -103,9 +103,6 @@ CREATE TABLE IF NOT EXISTS public.users (
   short_name VARCHAR(80) NOT NULL,
   login VARCHAR(80) NOT NULL UNIQUE,
   email VARCHAR(180) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  password_plain_fallback VARCHAR(120),
-  password_updated_at VARCHAR(32),
   must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
   role VARCHAR(24) NOT NULL CHECK (role IN ('admin', 'operador', 'socio')),
   status VARCHAR(24) NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'ativo', 'bloqueado')),
@@ -224,17 +221,17 @@ LEFT JOIN (SELECT partnership_id, SUM(balance) AS total_house_balance, SUM(in_tr
   {
     id: 'supabase_seed_sql',
     filename: 'supabase/seed.sql',
-    title: 'Supabase Seed · Empresa, Administrador, Equipe, 15 Casas e 8 Bancos',
+    title: 'Supabase Seed · Empresa, Perfis Sintéticos, 15 Casas e 8 Bancos',
     description:
-      'Popula a empresa enigma_grupo, a conta mestre de Administrador, operadores, sócios, as 15 casas de apostas iniciais e os 8 bancos operacionais brasileiros.',
+      'Popula a empresa enigma_grupo, um perfil sintético de demonstração e os catálogos iniciais. Não cria credenciais de autenticação nem deve ser usado como bootstrap de produção.',
     tables: ['companies', 'users', 'catalog_houses', 'catalog_banks'],
     sqlPreview: `-- supabase/seed.sql
 INSERT INTO public.companies (id, name, operational_month, operational_year)
 VALUES ('enigma_grupo', 'Enigma Operações Esportivas', 10, 2026)
 ON CONFLICT (id) DO UPDATE SET operational_month = EXCLUDED.operational_month, operational_year = EXCLUDED.operational_year;
 
-INSERT INTO public.users (id, name, short_name, login, email, password_hash, role, status)
-VALUES ('admin', 'Administrador Geral', 'Administrador', 'admin', 'admin@enigma.com', 'sha256:8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'admin', 'ativo')
+INSERT INTO public.users (id, name, short_name, login, email, role, status)
+VALUES ('admin', 'Administrador Geral', 'Administrador', 'admin', 'admin@enigma.com', 'admin', 'ativo')
 ON CONFLICT (id) DO NOTHING;`,
   },
 ];
@@ -288,7 +285,6 @@ export function generateLiveUsersSqlMigration(
     '  short_name VARCHAR(80) NOT NULL,',
     '  login VARCHAR(80) NOT NULL UNIQUE,',
     '  email VARCHAR(180) NOT NULL UNIQUE,',
-    '  password_hash VARCHAR(255) NOT NULL,',
     "  role VARCHAR(24) NOT NULL CHECK (role IN ('admin', 'operador', 'socio')),",
     "  status VARCHAR(24) NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'ativo', 'bloqueado')),",
     "  company_id VARCHAR(64) NOT NULL DEFAULT 'enigma_grupo',",
@@ -353,13 +349,11 @@ export function generateLiveUsersSqlMigration(
 
   for (const u of users) {
     lines.push(
-      `INSERT INTO users (id, name, short_name, login, email, password_hash, role, status, company_id, profit_share_percent, initial_monthly_balance, phone, registration_notes, created_at, approved_at, approved_by, last_login_at) VALUES (${escapeSqlLiteral(
+      `INSERT INTO users (id, name, short_name, login, email, role, status, company_id, profit_share_percent, initial_monthly_balance, phone, registration_notes, created_at, approved_at, approved_by, last_login_at) VALUES (${escapeSqlLiteral(
         u.id
       )}, ${escapeSqlLiteral(u.name)}, ${escapeSqlLiteral(u.shortName)}, ${escapeSqlLiteral(
         u.login
-      )}, ${escapeSqlLiteral(u.email)}, ${escapeSqlLiteral(
-        u.passwordHash || u.password || 'op123'
-      )}, ${escapeSqlLiteral(u.role)}, ${escapeSqlLiteral(u.status)}, ${escapeSqlLiteral(
+      )}, ${escapeSqlLiteral(u.email)}, ${escapeSqlLiteral(u.role)}, ${escapeSqlLiteral(u.status)}, ${escapeSqlLiteral(
         u.companyId
       )}, ${u.profitSharePercent.toFixed(2)}, ${u.initialMonthlyBalance.toFixed(
         2
