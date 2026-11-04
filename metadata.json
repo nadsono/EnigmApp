@@ -1,0 +1,6 @@
+{
+  "name": "Enigma Gestão",
+  "description": "Sistema integrado de gestão de parcerias, contas, entradas, saldos, caixa, saques, conferência, custos e pendências.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
