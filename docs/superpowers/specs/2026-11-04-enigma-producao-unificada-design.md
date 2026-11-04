@@ -28,7 +28,7 @@ Consolidar o desenvolvimento em uma única pasta Git fora de `Enigma Gestão (Es
 - Manter a interface Antigravity visualmente intacta durante a integração; os componentes conectados existentes no Codex servem como referência de estados e segurança, não como substituição visual.
 - Separar a experiência demo com dados sintéticos da persistência conectada internamente, sem apresentar “modo Supabase” como produto distinto.
 - Criar contexto versionado comum: `AGENTS.md`, regras em `.agents/rules/`, skills em `.agents/skills/` e documentos de produto, domínio, decisões, arquitetura e operação.
-- Concluir a fila atual do Antigravity ou reconciliá-la prompt a prompt antes de portar suas mudanças. A interface observada informa uma tarefa ativa e dez mensagens seriais; ela continua vinculada à pasta antiga até ser reaberta na pasta única.
+- Concluir a fila atual do Antigravity ou reconciliá-la prompt a prompt antes de portar suas mudanças. Na última inspeção da IDE, uma tarefa estava ativa em EstoqueScreen.tsx e seis mensagens permaneciam na fila serial; a pasta antiga segue como workspace até reconciliar tudo.
 - Preparar hospedagem/lançamento, mas deixar publicação de produção, configuração de contas externas e uso de dados reais condicionados aos controles, credenciais e validações que somente o titular pode fornecer/aprovar.
 
 ## Não objetivos
@@ -42,7 +42,7 @@ Consolidar o desenvolvimento em uma única pasta Git fora de `Enigma Gestão (Es
 
 ## Estado e restrições conhecidas
 
-- Antigravity está em `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1`, sem Git, com uma tarefa ativa e dez prompts em fila automática. O prompt em execução pode alterar `EntradasScreen.tsx`; novas mensagens são processadas em série.
+- Antigravity está em `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1`, sem Git, com uma tarefa ativa em `EstoqueScreen.tsx` e seis prompts em fila automática. Novas mensagens são processadas em série; o retrato pode mudar até a reconciliação.
 - A base principal Codex está em `...\enigma---gestão-de-contas-e-capital (1)`. A worktree `...\.worktrees\supabase-integration` tem o commit `152589e` e alterações locais pendentes em Auth, cofres, funções Edge, seed e documentação. Essas alterações devem ser preservadas e revisadas; não há uma base limpa para sobrescrita.
 - O código Antigravity concentra UI, sessão, cálculos e persistência local em `src/context/EnigmaContext.tsx`. As telas que devem ser preservadas incluem `src/App.tsx`, `src/components/SidebarNav.tsx`, `src/index.css`, `src/domain/uiTheme.ts` e `src/screens/*`.
 - O modo conectado Codex cobre menos módulos que a referência. Estoque, Visão Geral, Minha Performance, Pendências e Configurações ainda precisam de integração; há lacunas nos contratos para completar/editar pernas de operações.
@@ -66,3 +66,4 @@ Consolidar o desenvolvimento em uma única pasta Git fora de `Enigma Gestão (Es
 - A UI e os fluxos preservados do Antigravity continuam sendo a experiência padrão; interações críticas não dependem de um “modo Supabase” visual separado.
 - A preparação Supabase é integrada sem schema duplicado, credenciais expostas, fallback silencioso para dados demo, ou permissões mais amplas que a regra da aplicação.
 - O plano identifica o que já pode ser feito e quais itens do titular bloqueiam homologação ou produção real.
+
