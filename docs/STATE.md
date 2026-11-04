@@ -6,8 +6,8 @@
 - Pasta canônica: C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção).
 - Snapshot inicial do Antigravity contém 102 arquivos versionados, 1,82 MiB, importados no commit 7cf559bcf8ebfd5ba411f6b38620d2e44f9a70fd. A documentação de consolidação foi registrada depois na branch main.
 - Pastas de origem não foram editadas nem apagadas. A worktree Codex/Supabase permanece com alterações locais não commitadas e deve ser preservada.
-- Antigravity continua ativo na pasta antiga: uma tarefa em EstoqueScreen.tsx e seis prompts na fila serial na última verificação. Não abrir esta raiz como segundo escritor até finalizar e reconciliar.
-- A branch `codex/server-hardening` foi aberta na raiz canônica para uma frente independente; as alterações atuais ainda não foram commitadas.
+- Antigravity continua ativo na pasta antiga, trabalhando na ficha da parceria; na última leitura, o agente estava consultando EnigmaContext.tsx. Resta um prompt na fila, sobre transições de botões acionadas ao rolar a página. Não abrir esta raiz como segundo escritor até finalizar e reconciliar.
+- A branch `codex/server-hardening` contém o commit de hardening `af96a65`; as mudanças do seletor horizontal em EntradasScreen.tsx estão em andamento nessa mesma branch.
 
 ## O que foi preparado
 
@@ -33,7 +33,7 @@ Enquanto a fila serial segue no Antigravity, concluir apenas revisões locais qu
 
 ## Pendências de produto/lançamento
 
-1. Reconciliar os 6 prompts ainda em fila após finalizar o prompt ativo.
+1. Reconciliar o prompt de transições que resta na fila após finalizar a tarefa ativa.
 2. Concluir hardening dos serviços e substituir login local de demonstração por Supabase Auth antes de uso com pessoas ou dados reais.
 3. Formalizar corretoras, carteiras, redes, taxas, unidade de saldo, origem/data da cotação e fluxo de autorização de destino.
 4. Revisar contratos/migrations, RLS, cofres, step-up, rotação/recuperação, bootstrap e convite.

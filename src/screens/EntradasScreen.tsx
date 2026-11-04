@@ -1067,78 +1067,86 @@ export const EntradasScreen: React.FC = () => {
             </button>
           </div>
 
-          {/* Linha 2: Pílulas de Casas com Cores Leves Naturais da Casa/Provedor */}
-          <div className="flex flex-wrap items-center gap-[5px] pt-[2px]">
-            <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#64748B] mr-[3px]">
+          {/* Casas: faixa única com identidade visual e rolagem horizontal */}
+          <div className="flex min-w-0 items-center gap-[8px] pt-[2px]">
+            <span className="shrink-0 text-[10.5px] font-bold uppercase tracking-wider text-[#64748B]">
               Casas:
             </span>
-            {displayedQuickHouses.map((h) => {
-              const shortH = formatShortHouseName(h);
-              const isSelected = houseLegs.some((l) => doesAccountMatchHouse(l.houseName, h));
-              const activeAccsCount = getMatchingAccountsForHouse(h, operationalHouseAccounts).filter(
-                (a) => a.status !== 'limitada'
-              ).length;
+            <div
+              role="region"
+              aria-label="Filtro rápido de casas"
+              tabIndex={0}
+              onWheel={(event) => {
+                const horizontalDelta =
+                  Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+                if (
+                  event.currentTarget.scrollWidth <= event.currentTarget.clientWidth ||
+                  !horizontalDelta
+                ) {
+                  return;
+                }
+                event.preventDefault();
+                event.currentTarget.scrollBy({ left: horizontalDelta, behavior: 'auto' });
+              }}
+              className="flex min-w-0 flex-1 items-center gap-[5px] overflow-x-auto overscroll-x-contain py-[2px] touch-pan-x focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0D6E57]"
+            >
+              {displayedQuickHouses.map((h) => {
+                const shortH = formatShortHouseName(h);
+                const isSelected = houseLegs.some((l) => doesAccountMatchHouse(l.houseName, h));
+                const activeAccsCount = getMatchingAccountsForHouse(
+                  h,
+                  operationalHouseAccounts
+                ).filter((a) => a.status !== 'limitada').length;
 
-              const cat = houseCatalog.find(
-                (c) => c.name.toLowerCase() === h.toLowerCase() || c.code === h.toLowerCase()
-              );
-              const acc = operationalHouseAccounts.find((a) => doesAccountMatchHouse(a.houseName, h));
-              const cloneName = cat?.cloneGroup || acc?.cloneGroup || 'Sem clones';
-              const houseTheme = getHouseColorTheme(h, cloneName, cat?.color);
+                const cat = houseCatalog.find(
+                  (c) => c.name.toLowerCase() === h.toLowerCase() || c.code === h.toLowerCase()
+                );
+                const acc = operationalHouseAccounts.find((a) =>
+                  doesAccountMatchHouse(a.houseName, h)
+                );
+                const cloneName = cat?.cloneGroup || acc?.cloneGroup || 'Sem clones';
+                const houseTheme = getHouseColorTheme(h, cloneName, cat?.color);
 
-              return (
-                <button
-                  key={h}
-                  type="button"
-                  onClick={() => handleToggleHousePill(h)}
-                  title={`${shortH} · Provedor: ${cloneName} · ${activeAccsCount} conta(s) ativa(s)`}
-                  style={
-                    isSelected
-                      ? {
-                          backgroundColor: houseTheme.bg,
-                          borderColor: houseTheme.primary,
-                          color: houseTheme.text,
-                        }
-                      : undefined
-                  }
-                  className={`px-[9px] py-[3.5px] rounded-full text-[11.5px] flex items-center gap-[5px] border cursor-pointer transition-all ${
-                    isSelected
-                      ? 'font-bold shadow-xs ring-1 ring-black/5'
-                      : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#F8FAFC]'
-                  }`}
-                >
-                  {/* Ponto colorido da casa */}
-                  <span
-                    style={{ backgroundColor: houseTheme.primary }}
-                    className="w-[7px] h-[7px] rounded-full shrink-0"
-                  />
-
-                  {isSelected ? (
-                    <Check className="w-[11.5px] h-[11.5px]" strokeWidth={2.5} />
-                  ) : (
-                    <span className="text-[12px] font-bold opacity-60">+</span>
-                  )}
-
-                  <span>{shortH}</span>
-
-                  <span
-                    style={
-                      isSelected
-                        ? {
-                            backgroundColor: houseTheme.badgeBg,
-                            color: houseTheme.badgeText,
-                          }
-                        : undefined
-                    }
-                    className={`text-[9.5px] px-[4.5px] py-[0.5px] rounded-full font-bold tabular-nums ${
-                      !isSelected ? 'bg-[#F1F5F9] text-[#64748B]' : ''
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => handleToggleHousePill(h)}
+                    title={`${shortH} · Provedor: ${cloneName} · ${activeAccsCount} conta(s) ativa(s)`}
+                    style={{
+                      backgroundColor: houseTheme.bg,
+                      borderColor: houseTheme.primary,
+                      color: houseTheme.text,
+                      boxShadow: isSelected ? `0 0 0 2px ${houseTheme.ring}` : undefined,
+                    }}
+                    className={`shrink-0 whitespace-nowrap rounded-[7px] border px-[9px] py-[4px] text-[11.5px] flex items-center gap-[5px] cursor-pointer transition-colors ${
+                      isSelected ? 'font-bold' : 'font-medium hover:brightness-[0.97]'
                     }`}
                   >
-                    {activeAccsCount}
-                  </span>
-                </button>
-              );
-            })}
+                    {isSelected ? (
+                      <Check className="w-[11.5px] h-[11.5px]" strokeWidth={2.5} aria-hidden="true" />
+                    ) : (
+                      <span className="text-[12px] font-bold opacity-60" aria-hidden="true">
+                        +
+                      </span>
+                    )}
+
+                    <span>{shortH}</span>
+
+                    <span
+                      style={{
+                        backgroundColor: houseTheme.badgeBg,
+                        color: houseTheme.badgeText,
+                      }}
+                      className="rounded-[4px] px-[4.5px] py-[0.5px] text-[9.5px] font-bold tabular-nums"
+                    >
+                      {activeAccsCount}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
