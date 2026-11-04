@@ -3,27 +3,36 @@
 ## Marco atual
 
 - A consolidação foi aprovada: uma pasta de produção compartilhada, mantendo o produto Antigravity e integrando futuramente a fundação Supabase do Codex.
-- Pasta canônica: `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção)`.
-- Projeto de origem Antigravity permanece em `Enigma Gestão (Estudo)` e não deve ser alterado pelo Codex durante a cópia.
-- A worktree Codex/Supabase possui alterações locais ainda não revisadas; preservar intacta até o mapeamento.
-- Na última inspeção, Antigravity reportava uma tarefa ativa e dez mensagens seriais em fila na pasta antiga. A nova raiz não deve ser aberta como segundo escritor até a fila concluir e as diferenças serem reconciliadas.
+- Pasta canônica: C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção).
+- Snapshot inicial do Antigravity contém 95 arquivos (incluindo documentação e skills), 1,77 MiB, commit ae440804def140f285781be3a5572a5c21e334f3, branch main limpa.
+- Pastas de origem não foram editadas nem apagadas. A worktree Codex/Supabase permanece com alterações locais não commitadas e deve ser preservada.
+- Antigravity está ativo na pasta antiga, em uma tarefa de responsividade/zoom alto, com 6 prompts ainda na fila serial. Não abrir esta raiz como segundo escritor até finalizar e reconciliar.
 
-## Snapshot e limites
+## O que foi preparado
 
-- Snapshot inicial copiado de: `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1`.
-- Foram excluídos dependências/builds/caches, arquivos `.env*`, diretórios de esquema/migrations Antigravity (`database`, `drizzle`, `supabase`) e cópias versionadas. A pasta original permanece intacta.
-- `firebase-applet-config.json` é configuração client-side preexistente; não é segredo de servidor, mas aponta para integração externa e requer decisão antes de homologação.
-- Código de API/servidor do snapshot ainda requer revisão de autenticação/autorização antes de ser exposto online. A consolidação não o torna seguro para produção.
-- Supabase ainda não foi conectado ou aplicado remotamente.
+- Contexto e regras comuns para agentes: AGENTS.md, PROJECT_CONTEXT.md e .agents/rules/project.md.
+- Skills Enigma UI/UX, ui-taste e tirar-cara-de-ia versionadas; licenças/atribuições preservadas.
+- Design de consolidação, decisão arquitetural, plano de workspace, plano UI/demo, plano Supabase/lançamento e auditoria visual base registrados em docs.
+- A auditoria visual em src contou 40 arquivos e 28.261 linhas. O resultado mais expressivo foi 2.640 hex fixos (heurística; requer revisão por tela). O estilo existente usa verde/navy, quase não usa sombras, degradês ou cartões arredondados, então não pede um remake integral.
+
+## Limites atuais
+
+- O snapshot mantém a UI, telas, contexto, seeds sintéticos, servidor/API, manifests e lockfiles. Foram excluídos caches, arquivos .env*, chaves/certificados, cópias de ferramenta e schemas/migrations Antigravity para evitar duplicar a história Supabase.
+- firebase-applet-config.json permaneceu por ser configuração de cliente importada diretamente pela aplicação; verificar projeto e restrições antes de homologar.
+- server.ts contém rotas sem autenticação/autorização e respostas de saúde com estatísticas fictícias se a base falhar. Ainda não é seguro para exposição online.
+- src/lib/supabase.ts envia password_plain_fallback em sincronização. Bloquear conexão real até substituir e revisar a implementação.
+- Não conectamos banco remoto, não aplicamos migrations remotas e não publicamos a aplicação.
+- O servidor local do Antigravity segue ativo; não foi iniciado ou interrompido pelo Codex.
 
 ## Próximo passo
 
-Conferir a origem e o inventário do snapshot, inicializar Git na pasta canônica e revisar o baseline. Depois, aguardar e reconciliar cada alteração concluída na fila Antigravity antes de abrir esta raiz nela. Em seguida, mapear domínio e autorização da UI para a fundação Supabase preservada no Codex.
+Aguardar o fim da fila serial no Antigravity e reconciliar cada alteração aprovada, sem sobrescrever a base nova. Depois abrir a pasta canônica na IDE e iniciar o hardening local dos endpoints/fallbacks e o mapeamento de domínio para os contratos/migrations Supabase Codex.
 
 ## Pendências de produto/lançamento
 
-1. Reconciliar os prompts ainda em fila no Antigravity.
-2. Auditar rotas do servidor, fallback de saúde com dados fictícios, credenciais e conteúdo exportado.
-3. Formalizar os estados de corretoras/carteiras, redes, moedas, taxa/FX e autorização de destinos.
-4. Revisar contratos, migrations, RLS, cofres, rotação/recuperação, autenticação e onboarding do primeiro administrador.
-5. Preparar homologação sintética, observabilidade, backup/restore, domínio e e-mail; produção exige configuração e liberação do titular.
+1. Reconciliar os 6 prompts ainda em fila após finalizar o prompt ativo.
+2. Remover autenticação ausente e fallbacks falsos da API; nunca enviar/salvar senha em texto plano.
+3. Formalizar corretoras, carteiras, redes, taxas, unidade de saldo, origem/data da cotação e fluxo de autorização de destino.
+4. Revisar contratos/migrations, RLS, cofres, step-up, rotação/recuperação, bootstrap e convite.
+5. Preparar homologação com dados fictícios, observabilidade e backup/restore; separar chaves/instâncias de homologação e produção.
+6. A publicação real depende de configuração do titular e autorização explícita de liberação.
