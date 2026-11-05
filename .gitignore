@@ -15,6 +15,7 @@ coverage/
 .vite/
 .cache/
 *.log
+graphify-out/.graphify_*
 
 # Local IDE/system files
 .DS_Store

@@ -9,6 +9,7 @@
 - Mudanças de destino de transferência, credenciais, permissões ou funções financeiras exigem autorização explícita, confirmação e trilha auditável.
 - Mantenha a experiência de demo utilizável sem backend; qualquer falha conectada deve ser explícita e nunca cair silenciosamente em dados fictícios como se fossem reais.
 - Codex é o canal principal para requisitos, decisões e coordenação. Antigravity pode atuar nesta mesma pasta para uma tarefa visual delimitada; mantenha um único escritor por conjunto de arquivos.
+- Quando `graphify-out/graph.json` existir, consulte `graphify explain`/`graphify path` para localizar código antes de abrir muitos arquivos. Depois de mudanças substanciais no código, atualize com `graphify update .`; essa atualização local não usa LLM. Não rode extração semântica com LLM sem pedido explícito.
 - Não publique, aplique migrations remotas ou use dados reais sem credenciais/configuração aprovadas e autorização explícita de liberação.
 - Prefira alterações focadas, acessíveis e coerentes com os padrões existentes. Preserve atribuições/licenças das skills versionadas em `.agents/skills/`.
 

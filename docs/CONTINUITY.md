@@ -40,14 +40,13 @@ Atualizado em 5 nov 2026. Leia este resumo primeiro; depois abra só a referênc
 ## Segundo cérebro e grafo
 
 - Os documentos técnicos desta raiz são a memória operacional compartilhada entre Codex e Antigravity quando ambos abrem esta mesma raiz; a nota no Second Brain aponta para eles.
-- O executável Graphify existe, mas `graphify-out/graph.json` não existe nesta raiz. Conversas e pastas locais não entram automaticamente no grafo nem no GitHub.
-- Gerar um grafo cria arquivos locais em `graphify-out/`; só fazer isso depois de confirmação do usuário. Excluir `.env`, credenciais, dados de pessoas e saídas que contenham segredos.
-- Após criar/revisar commits, sincronizar a branch com o repositório privado. A conexão GitHub do app reconhece o repo, mas o Git local ainda não conseguiu autenticar no remoto; não tente contornar credenciais.
+- Grafo local criado em `graphify-out/` com extração `--code-only`: 66 arquivos de código, 556 nós, 1.642 ligações, 21 comunidades e 0 tokens de LLM. Documentos e imagens ficaram fora para reduzir custo; leia `docs/CONTINUITY.md`/Second Brain para decisões.
+- O parser Graphify marcou `src/screens/ParceriasScreen.tsx` como extração parcial (erro de sintaxe do parser, linha 366); build e TypeScript passaram. Nove arquivos de teste/configuração não geraram símbolos. A folha `tokens.css` foi corretamente ignorada como potencialmente sensível.
+- Use `graphify explain "EntradasScreen.tsx"` ou `graphify path "A" "B"` para consultas; rode `graphify update .` após alterações relevantes no código. A extração semântica com LLM não está habilitada por padrão.
+- O checkout limpo está na branch `codex/server-hardening`, rastreando `origin/codex/server-hardening`. Os commits `f233fbc` e `134ee58` já foram enviados ao repositório privado `nadsono/EnigmApp`.
 
 ## Próximo passo
 
-1. Terminar revisão visual e de código do working tree, preservar alterações anteriores e identificar qualquer arquivo que não deva ser versionado.
-2. Criar commits locais focados para os arquivos aprovados e manter este resumo atualizado.
-3. Confirmar a autenticação do Git local, então enviar a branch para o repositório privado e verificar que todas as pastas esperadas aparecem no remoto.
-4. Com autorização do usuário, gerar e atualizar o grafo Graphify, revisar seu conteúdo e decidir se `graphify-out/` será versionado ou só reconstruído localmente.
-5. Só depois avançar com staging Supabase/Vercel e liberação de produção.
+1. Retomar QA visual responsiva quando o Chrome estiver disponível; não marcar larguras menores como verificadas até medir overflow em viewport reduzido.
+2. Versionar e enviar `graphify-out/` após revisar os artefatos; atualizar a nota do Second Brain com o resultado.
+3. Depois avançar com staging Supabase/Vercel, mantendo autenticação, isolamento, segurança e autorização de publicação como gates.

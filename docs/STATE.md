@@ -9,6 +9,8 @@
 - Graphify está instalado, mas o grafo ainda não foi gerado. É necessário confirmar antes de criar `graphify-out/` conforme a skill Graphify.
 - Há 44 itens modificados/não rastreados no checkout antes desta atualização. Revisar e classificar antes de commit; `.env`, `node_modules` e `dist` são ignorados. A inspeção de nomes sensíveis no histórico não encontrou caminhos correspondentes.
 - Revalidação após esta análise: `npm run build`, `npm run lint` e os 55 testes de domínio passaram. Permanecem os avisos de `__dirname` no Vite e chunk JavaScript de 897 kB. A automação do Chrome expirou duas vezes durante o teste de viewport reduzido; QA visual responsiva continua pendente.
+- Sincronização concluída: commits `f233fbc` (interface/fluxos) e `134ee58` (contexto e planos) estão em `origin/codex/server-hardening`; checkout limpo antes da geração do grafo.
+- Grafo Graphify código-apenas gerado localmente sem LLM: 66 arquivos, 556 nós, 1.642 ligações, 21 comunidades. `src/screens/ParceriasScreen.tsx` foi extraído parcialmente por limitação de parser na linha 366; build e TypeScript passam. O grafo ainda precisa ser revisado e versionado.
 - **Próximo passo:** validar o pacote de mudanças e autenticar o Git local; então fazer commits focados e enviar a branch para o repositório privado. Em paralelo, retomar QA responsivo. Graphify segue pendente de confirmação.
 
 ## Marco atual
