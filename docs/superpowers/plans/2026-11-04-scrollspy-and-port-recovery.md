@@ -36,7 +36,7 @@
 - [x] Definir `PORT` padrão como 3002 e permitir override por variável de ambiente.
 - [x] Definir a porta HMR própria como 24679, com override `VITE_HMR_PORT`; preservar `vite.config.ts`.
 - [x] Parar somente a sessão Codex que ocupava 127.0.0.1:3001; manter o processo da pasta de Estudo em 3001.
-- [x] Iniciar a raiz Produção em 3002 sem file watching e abrir a prévia em uma nova aba, sem atualizar a aba antiga.
+- [x] Iniciar a raiz Produção em 3002, com HMR em 24679 e abrir a prévia em uma nova aba, sem atualizar a aba antiga.
 - [x] Registrar comandos de inicialização e estado final de portas em `docs/STATE.md`.
 
 ### Tarefa 2: revisar e versionar o conjunto desta mudança
@@ -76,4 +76,4 @@
 - [x] No viewport de referência 1562 × 1155 px, conferir os quatro grupos, navegação por seletor e separador, crescimento das telas densas e retorno de Entradas ao topo; não foi observada rolagem horizontal.
 - [x] Confirmar resposta HTTP 200 em 3001 (Estudo) e 3002 (Produção); a porta HMR da Produção é 24679 e a antiga continua em 24678.
 - [x] Registrar verificações, erros de TypeScript já conhecidos e o próximo passo no estado do projeto.
-- [ ] Revisar o diff integrado e criar um commit local para esta mudança; manter o remoto vazio até o titular indicar o destino.
+- [x] Revisar o diff integrado e criar um commit local para esta mudança; manter o remoto vazio até o titular indicar o destino.

@@ -2,7 +2,7 @@
 
 ## Marco atual
 
-- A raiz canônica continua em `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção)`, branch local `codex/server-hardening`; esta rodada prepara um checkpoint local revisado.
+- A raiz canônica continua em `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção)`, branch local `codex/server-hardening`; o checkpoint desta mudança de interface/servidor está versionado localmente.
 - A fila de prompts do Antigravity foi confirmada como concluída na IDE. A pasta antiga de referência não tem metadados Git; a reconciliação foi feita por comparação de conteúdo, sem copiar a árvore inteira.
 - `ScrollspyScreenGroup` agora reúne subtelas em rolagem contínua nos grupos Visão Geral, Caixa & Saques, Parcerias & Contas e Financeiro & Equipe. Entradas continua isolada. Subseletores e separadores levam à seção correta e a tela ativa acompanha a navegação; a Equipe continua restrita a quem já tinha acesso.
 - Cada seção tem altura mínima relativa ao viewport e cresce com o conteúdo. Resumo Geral e Minha Performance distribuem os blocos que já existiam pelo espaço vertical, sem gerar métricas ou registros para preencher a tela.
@@ -10,7 +10,7 @@
 - O cadastro direto no Estoque agora inclui endereço opcional e observações operacionais; a área fica restrita a admin/operador e nomes de titulares no estoque são ocultados para quem não tem acesso à ficha. A edição da ficha preserva os dados KYC como leitura, controla campos sensíveis e exige confirmação explícita e evento de histórico ao alterar destinos financeiros.
 - As verificações de permissão e o histórico de destino são locais à demonstração. A heurística de rede ajuda a não bloquear fichas antigas com chave PIX, mas não valida endereço cripto e não substitui autorização/auditoria no servidor.
 - O servidor Antigravity da pasta `Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1` continua em `0.0.0.0:3001`. O processo da raiz Produção que ocupava `127.0.0.1:3001` foi encerrado sem tocar no servidor antigo.
-- O preview da raiz canônica de Produção fica em `http://127.0.0.1:3002`, com HMR em `24679`; o servidor antigo mantém HMR em `24678`. O `vite.config.ts` não foi alterado. Para refletir alterações da mesma pasta sem reiniciar, mantenha `DISABLE_HMR` indefinido ou diferente de `true`.
+- O preview da raiz canônica de Produção fica em `http://127.0.0.1:3002`, com HMR em `24679`; o servidor antigo mantém HMR em `24678`. O `vite.config.ts` não foi alterado. O preview da Produção está com HMR habilitado para refletir edições da pasta compartilhada.
 - Há duas janelas Antigravity abertas: uma na raiz Produção e outra na pasta de Estudo, em `PendenciasScreen.tsx`. O workspace antigo e seus arquivos não foram modificados.
 
 ## O que foi preparado
@@ -21,7 +21,7 @@
 - `GLOSSARY.md` define a linguagem do domínio; `docs/data-mapping.md` registra entidades, estados, gaps, invariantes e trilhas de schema candidatas.
 - Snapshot inicial: 102 arquivos, cerca de 1,82 MiB, commit de importação `7cf559bcf8ebfd5ba411f6b38620d2e44f9a70fd`.
 - O second brain do projeto está nos arquivos de contexto versionáveis da raiz Produção (`AGENTS.md`, `PROJECT_CONTEXT.md`, `docs/STATE.md`, regras e planos). A pasta de Estudo não recebe essas mudanças automaticamente.
-- Git: branch local `codex/server-hardening`, HEAD `f7d3ecb`; `git remote -v` não lista remoto. Há alterações rastreadas e arquivos novos ainda sem commit, portanto as versões atuais existem apenas na árvore local até a revisão e o próximo checkpoint.
+- Git: branch local `codex/server-hardening`; `git remote -v` não lista remoto. O checkpoint de navegação/servidor e seus documentos foi criado localmente. Outras alterações pendentes de arquivos de domínio, autenticação e parceria ficaram fora desse commit e precisam de revisão separada antes de versionar.
 
 ## Segurança e limites
 
@@ -44,7 +44,7 @@
 
 ## Próximo passo recomendado
 
-Revisar o diff desta mudança e criar um checkpoint Git local. Depois, corrigir os três erros de TypeScript já conhecidos e decidir com o titular qual remoto Git será usado para backup e colaboração.
+Corrigir os três erros de TypeScript já conhecidos e revisar em separado as alterações ainda não versionadas; depois, decidir qual remoto Git será usado para backup e colaboração.
 
 ## Pendências para lançamento
 
