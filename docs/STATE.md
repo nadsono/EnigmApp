@@ -1,4 +1,15 @@
-# Estado do projeto — 4 nov 2026
+# Estado do projeto — 5 nov 2026
+
+## Atualização de continuidade e sincronização — 5 nov 2026
+
+- Causa confirmada da perda de contexto: este checkout da Produção não tinha remoto Git; o GitHub `nadsono/EnigmApp` está privado e vazio; o Codex não lista esta raiz entre os projetos salvos; e não há `graphify-out/graph.json` aqui. A pasta de Downloads e a pasta de Estudo são outros checkouts, não sincronizam esse diretório.
+- `origin` agora aponta para `https://github.com/nadsono/EnigmApp.git`. A conexão GitHub do Codex consegue ler o repositório, mas o Git local não autenticou (`git ls-remote` foi cancelado no prompt de credenciais). Nenhum push foi feito.
+- O projeto foi adicionado ao índice do Second Brain em `Second Brain/04 - Projetos/Enigma/`, com registro e instruções que apontam para a raiz canônica; o código não foi duplicado ali.
+- `docs/CONTINUITY.md` virou o resumo operacional curto para retomar tarefas sem reler conversas inteiras; `AGENTS.md` agora o cita como primeira leitura.
+- Graphify está instalado, mas o grafo ainda não foi gerado. É necessário confirmar antes de criar `graphify-out/` conforme a skill Graphify.
+- Há 44 itens modificados/não rastreados no checkout antes desta atualização. Revisar e classificar antes de commit; `.env`, `node_modules` e `dist` são ignorados. A inspeção de nomes sensíveis no histórico não encontrou caminhos correspondentes.
+- Revalidação após esta análise: `npm run build`, `npm run lint` e os 55 testes de domínio passaram. Permanecem os avisos de `__dirname` no Vite e chunk JavaScript de 897 kB. A automação do Chrome expirou duas vezes durante o teste de viewport reduzido; QA visual responsiva continua pendente.
+- **Próximo passo:** validar o pacote de mudanças e autenticar o Git local; então fazer commits focados e enviar a branch para o repositório privado. Em paralelo, retomar QA responsivo. Graphify segue pendente de confirmação.
 
 ## Marco atual
 
@@ -7,6 +18,7 @@
 - `ScrollspyScreenGroup` agora reúne subtelas em rolagem contínua nos grupos Visão Geral, Caixa & Saques, Parcerias & Contas e Financeiro & Equipe. Entradas continua isolada. Subseletores e separadores levam à seção correta e a tela ativa acompanha a navegação; a Equipe continua restrita a quem já tinha acesso.
 - Cada seção tem altura mínima relativa ao viewport, limitada a 1040 px CSS para reduzir intervalos excessivos quando o zoom amplia o viewport CSS; conteúdo maior continua expandindo a seção. Resumo Geral e Minha Performance distribuem apenas os blocos já existentes, sem gerar métricas ou registros.
 - A repetição visual do Estoque ao rolar vinha de uma segunda renderização avulsa em `App.tsx` além da seção já montada em `ScrollspyScreenGroup`; a renderização duplicada foi removida.
+- Na Visão Geral, os resumos globais de Banca/Mês e Casas/Aberto/Trânsito/Carteiras foram ocultados porque repetiam os cartões da própria tela. Cotação e navegação continuam visíveis; os resumos permanecem nas outras telas.
 - Em Conferência, selecionar uma divergência usa controles de botão acessíveis por teclado. O seletor de casas em Entradas mantém o redesenho neutro já feito e sua alteração local pré-existente foi preservada.
 - O cadastro direto no Estoque agora inclui endereço opcional e observações operacionais; a área fica restrita a admin/operador e nomes de titulares no estoque são ocultados para quem não tem acesso à ficha. A edição da ficha preserva os dados KYC como leitura, controla campos sensíveis e exige confirmação explícita e evento de histórico ao alterar destinos financeiros.
 - As verificações de permissão e o histórico de destino são locais à demonstração. A heurística de rede ajuda a não bloquear fichas antigas com chave PIX, mas não valida endereço cripto e não substitui autorização/auditoria no servidor.
@@ -43,9 +55,30 @@
 - A prévia de Produção em 3002 responde HTTP 200 e entrega os módulos novos; a porta 3001 recusou conexão nesta checagem. A tela antiga não foi reaberta nem substituída.
 - Não foram usados dados reais, executados testes automatizados, conectados bancos remotos, aplicadas migrations nem feita publicação.
 
+## Verificação da atualização visual — 5 nov 2026
+
+- `npm run build` passou após ocultar os resumos duplicados na Visão Geral. O Vite continua mostrando os avisos existentes sobre `__dirname` e o tamanho do bundle JavaScript.
+- `git diff --check` não encontrou erros de whitespace; mostrou apenas avisos de conversão LF/CRLF em arquivos já modificados.
+- Nenhum teste automatizado foi executado.
+
+## Referências visuais recebidas — 5 nov 2026
+
+- As referências de Planna, Flowra, Orbit e Strapp apontam para uma hierarquia de dashboard clara, gráficos de leitura rápida, controles compactos e listas operacionais próximas dos indicadores. A aplicação mantém a marca e a paleta do Enigma; nomes, valores e identidade dos produtos de referência não foram reutilizados.
+- A Visão Geral ganhou o painel Resultado liquidado, com visualização diária/acumulada, pontos com tooltip/foco de teclado e alternância do período global. O gráfico usa somente operações concluídas e o cálculo existente do domínio.
+- A distribuição de capital foi reorganizada como gráfico de anel com categorias navegáveis para as áreas correspondentes. Os períodos sem operações liquidadas mostram estado vazio, sem preencher com dados estimados.
+- O espaçamento da página passou a usar gaps consistentes no lugar de distribuir as seções com `justify-between`, evitando os intervalos grandes em zoom reduzido.
+- `npm run build` passou; o preview local de Produção em `127.0.0.1:3002` respondeu HTTP 200. `npm run lint` ainda aponta apenas os três erros TypeScript anteriores em `src/domain/auth.test.ts` e `src/screens/ParceriasScreen.tsx`; não executamos testes automatizados nem inspeção visual no navegador após esta alteração.
+
+## Alinhamento de UX e personalização em revisão — 5 nov 2026
+
+- O usuário confirmou que o nome público é Enigma e que gosta da base visual atual. Pediu um prompt/plano para leitura antes de implementar temas, ajustes de UX, capital adaptável e operação cripto configurável para uso individual ou em equipe.
+- O rascunho está em docs/superpowers/specs/2026-11-05-enigma-alinhamento-ux-e-personalizacao.md. As escolhas de padrão de tema, densidade e regra de sugestão de capital estão identificadas como propostas.
+- Foram consultados a análise e o procedimento do Surebet Engine, além de amostras de quadros já extraídos. O vídeo completo não foi reanalisado; informações reais da gravação não foram copiadas para a demonstração.
+- Esta rodada alterou apenas documentação. A revisão pedida pelo usuário vem antes de novas alterações na aplicação, integração remota ou publicação.
+
 ## Próximo passo recomendado
 
-Receber capturas acessíveis dos exemplos de interface enviados por Threads/Notion, cuja página não foi acessível pela ferramenta de pesquisa; então desenhar gráficos e controles interativos usando os dados operacionais já disponíveis, sem métricas artificiais. Em paralelo, corrigir os três erros de TypeScript já conhecidos e revisar em separado as alterações ainda não versionadas; depois, decidir qual remoto Git será usado para backup e colaboração.
+Receber a revisão do usuário sobre o briefing e confirmar se Capital sugerido significa orçamento da próxima entrada. Após esse alinhamento, delimitar a primeira entrega e corrigir as inconsistências de datas, acessibilidade e TypeScript já conhecidas. Validar os fluxos em diferentes larguras/zooms; definir contratos configuráveis de conta, ativo, rede e preferências antes de persistir no Supabase. Revisar em separado as alterações ainda não versionadas e decidir qual remoto Git será usado para backup e colaboração.
 
 ## Pendências para lançamento
 

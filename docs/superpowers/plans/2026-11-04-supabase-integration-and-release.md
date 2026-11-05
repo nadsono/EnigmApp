@@ -34,11 +34,11 @@
 
 **Arquivos:** src/domain/* e src/context/EnigmaContext.tsx da base canônica; contratos, migrations, Edge Functions e documentos na worktree Codex
 
-- [ ] Identificar contratos e migrations candidatos sem alterar a worktree de origem.
-- [ ] Mapear entidades/estados: operador, aprovador, parceria, titular, casa, corretora, carteira, rede, entrada, saque, ledger, custo e câmbio.
-- [ ] Mapear estados da UI aos contratos; apontar estados sem operação equivalente, sem inventar conversões automáticas.
-- [ ] Confirmar migration history ativa única e listar os schemas legados que permanecerão apenas como arquivo de referência.
-- [ ] Produzir tabela de mapeamento e lista de gaps em docs/data-mapping.md.
+- [x] Identificar contratos e migrations candidatos sem alterar a worktree de origem.
+- [x] Mapear entidades/estados: operador, aprovador, parceria, titular, casa, corretora, carteira, rede, entrada, saque, ledger, custo e câmbio.
+- [x] Mapear estados da UI aos contratos; apontar estados sem operação equivalente, sem inventar conversões automáticas.
+- [x] Confirmar que não há história de migration ativa na raiz canônica e listar os schemas legados/candidatos em `docs/data-mapping.md`.
+- [x] Produzir tabela de mapeamento e lista de gaps em `docs/data-mapping.md`.
 
 ### Tarefa 2: Corrigir limites de segurança conhecidos
 

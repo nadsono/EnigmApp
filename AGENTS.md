@@ -1,6 +1,7 @@
 # Instruções compartilhadas do projeto
 
-- Leia `PROJECT_CONTEXT.md` e `docs/STATE.md` antes de editar.
+- Leia `PROJECT_CONTEXT.md`, `docs/CONTINUITY.md` e o trecho atual de `docs/STATE.md` antes de editar.
+- Use `docs/CONTINUITY.md` como resumo rápido e mantenha o próximo passo explícito após mudanças grandes para reduzir a releitura de chats extensos.
 - Trabalhe somente na raiz canônica `Enigma Gestão (Produção)`; não edite as pastas de estudo ou as referências antigas.
 - Preserve a navegação, a identidade visual e os fluxos Antigravity. Supabase é uma fundação de dados/autenticação interna, não um modo visual separado.
 - Use somente dados sintéticos. Não adicione credenciais, dados pessoais reais, chaves privadas ou arquivos `.env` ao Git.

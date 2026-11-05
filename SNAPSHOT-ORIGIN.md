@@ -22,6 +22,6 @@
 
 ## Aviso de concorrência
 
-A origem Antigravity pode continuar recebendo a fila de prompts já iniciada. Este snapshot é um ponto no tempo; comparar mudanças após a fila terminar e portar somente alterações revisadas, arquivo a arquivo.
+A fila de prompts do Antigravity foi confirmada como concluída em 2026-11-04. A origem não tem metadados Git; a comparação foi feita por conteúdo. Foram portados seletivamente o scrollspy entre telas relacionadas e a posição do botão “Equalizar Stakes” junto de “Adicionar perna”. Diferenças de formatação, a falsa ação de login Google, alterações que removiam acessibilidade e caminhos que desfaziam hardening do servidor/Auth não foram copiadas. A origem permanece preservada como referência; a porta 3001 continua servindo essa cópia até o servidor ser reiniciado a partir da raiz canônica em outro momento autorizado.
 
 
