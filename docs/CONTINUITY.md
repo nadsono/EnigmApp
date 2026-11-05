@@ -43,10 +43,9 @@ Atualizado em 5 nov 2026. Leia este resumo primeiro; depois abra só a referênc
 - Grafo local criado em `graphify-out/` com extração `--code-only`: 66 arquivos de código, 556 nós, 1.642 ligações, 21 comunidades e 0 tokens de LLM. Documentos e imagens ficaram fora para reduzir custo; leia `docs/CONTINUITY.md`/Second Brain para decisões.
 - O parser Graphify marcou `src/screens/ParceriasScreen.tsx` como extração parcial (erro de sintaxe do parser, linha 366); build e TypeScript passaram. Nove arquivos de teste/configuração não geraram símbolos. A folha `tokens.css` foi corretamente ignorada como potencialmente sensível.
 - Use `graphify explain "EntradasScreen.tsx"` ou `graphify path "A" "B"` para consultas; rode `graphify update .` após alterações relevantes no código. A extração semântica com LLM não está habilitada por padrão.
-- O checkout limpo está na branch `codex/server-hardening`, rastreando `origin/codex/server-hardening`. Os commits `f233fbc` e `134ee58` já foram enviados ao repositório privado `nadsono/EnigmApp`.
+- O checkout está na branch `codex/server-hardening`, rastreando `origin/codex/server-hardening`. Os commits `f233fbc`, `134ee58` e `b62f007` já foram enviados ao repositório privado `nadsono/EnigmApp`; o grafo, relatório, visualização e manifesto estão versionados.
 
 ## Próximo passo
 
 1. Retomar QA visual responsiva quando o Chrome estiver disponível; não marcar larguras menores como verificadas até medir overflow em viewport reduzido.
-2. Versionar e enviar `graphify-out/` após revisar os artefatos; atualizar a nota do Second Brain com o resultado.
-3. Depois avançar com staging Supabase/Vercel, mantendo autenticação, isolamento, segurança e autorização de publicação como gates.
+2. Depois avançar com staging Supabase/Vercel, mantendo autenticação, isolamento, segurança e autorização de publicação como gates.
