@@ -2,7 +2,8 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 
 const app = express();
-const defaultPort = Number(process.env.PORT) || 3001;
+const defaultPort = Number(process.env.PORT) || 3002;
+const defaultHmrPort = Number(process.env.VITE_HMR_PORT) || 24679;
 
 // The production API is intentionally unavailable until authentication,
 // authorization, validation, and audited Supabase handlers are integrated.
@@ -15,7 +16,7 @@ app.use('/api', (_req, res) => {
 });
 
 const vite = await createViteServer({
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, hmr: { port: defaultHmrPort } },
   appType: 'spa',
 });
 app.use(vite.middlewares);

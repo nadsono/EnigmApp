@@ -2,42 +2,55 @@
 
 ## Marco atual
 
-- A consolidação foi aprovada: uma pasta de produção compartilhada, mantendo o produto Antigravity e integrando futuramente a fundação Supabase do Codex.
-- Pasta canônica: C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção).
-- Snapshot inicial do Antigravity contém 102 arquivos versionados, 1,82 MiB, importados no commit 7cf559bcf8ebfd5ba411f6b38620d2e44f9a70fd. A documentação de consolidação foi registrada depois na branch main.
-- As pastas de estudo e a worktree Codex/Supabase original não foram alteradas. A pasta antiga do Antigravity recebeu uma alteração focada em `src/screens/EntradasScreen.tsx`, conforme pedido, porque é a fonte do servidor em `localhost:3001`.
-- Antigravity continua ativo na pasta antiga, trabalhando em `SidebarNav.tsx`. Resta um prompt na fila sobre transições de botões acionadas ao rolar a página; a edição aplicada em EntradasScreen.tsx não conflita com essa tarefa.
-- A branch `codex/server-hardening` contém os commits `af96a65` (hardening) e `b554ad5` (seletor horizontal). A mesma mudança do seletor também foi aplicada à cópia servida pelo Antigravity.
+- A raiz canônica continua em `C:\Users\Baroli\OneDrive\Documents\Vibe Kode\Enigma Gestão (Produção)`, branch local `codex/server-hardening`; esta rodada prepara um checkpoint local revisado.
+- A fila de prompts do Antigravity foi confirmada como concluída na IDE. A pasta antiga de referência não tem metadados Git; a reconciliação foi feita por comparação de conteúdo, sem copiar a árvore inteira.
+- `ScrollspyScreenGroup` agora reúne subtelas em rolagem contínua nos grupos Visão Geral, Caixa & Saques, Parcerias & Contas e Financeiro & Equipe. Entradas continua isolada. Subseletores e separadores levam à seção correta e a tela ativa acompanha a navegação; a Equipe continua restrita a quem já tinha acesso.
+- Cada seção tem altura mínima relativa ao viewport e cresce com o conteúdo. Resumo Geral e Minha Performance distribuem os blocos que já existiam pelo espaço vertical, sem gerar métricas ou registros para preencher a tela.
+- Em Conferência, selecionar uma divergência usa controles de botão acessíveis por teclado. O seletor de casas em Entradas mantém o redesenho neutro já feito e sua alteração local pré-existente foi preservada.
+- O cadastro direto no Estoque agora inclui endereço opcional e observações operacionais; a área fica restrita a admin/operador e nomes de titulares no estoque são ocultados para quem não tem acesso à ficha. A edição da ficha preserva os dados KYC como leitura, controla campos sensíveis e exige confirmação explícita e evento de histórico ao alterar destinos financeiros.
+- As verificações de permissão e o histórico de destino são locais à demonstração. A heurística de rede ajuda a não bloquear fichas antigas com chave PIX, mas não valida endereço cripto e não substitui autorização/auditoria no servidor.
+- O servidor Antigravity da pasta `Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1` continua em `0.0.0.0:3001`. O processo da raiz Produção que ocupava `127.0.0.1:3001` foi encerrado sem tocar no servidor antigo.
+- O preview da raiz canônica de Produção fica em `http://127.0.0.1:3002`, com HMR em `24679`; o servidor antigo mantém HMR em `24678`. O `vite.config.ts` não foi alterado. Para refletir alterações da mesma pasta sem reiniciar, mantenha `DISABLE_HMR` indefinido ou diferente de `true`.
+- Há duas janelas Antigravity abertas: uma na raiz Produção e outra na pasta de Estudo, em `PendenciasScreen.tsx`. O workspace antigo e seus arquivos não foram modificados.
 
 ## O que foi preparado
 
-- Contexto e regras comuns para agentes: AGENTS.md, PROJECT_CONTEXT.md e .agents/rules/project.md.
-- Skills Enigma UI/UX, ui-taste e tirar-cara-de-ia versionadas; licenças/atribuições preservadas.
-- Design de consolidação, decisão arquitetural, plano de workspace, plano UI/demo, plano Supabase/lançamento e auditoria visual base registrados em docs.
-- A auditoria visual em src contou 44 arquivos e 29.213 linhas. O resultado mais expressivo foi 2.640 hex fixos (heurística; requer revisão por tela). O estilo existente usa verde/navy, quase não usa sombras, degradês ou cartões arredondados, então não pede um remake integral.
+- Regras e contexto comuns: `AGENTS.md`, `PROJECT_CONTEXT.md`, `.agents/rules/project.md` e skills do projeto.
+- Decisão de manter a experiência visual Antigravity com a camada de dados Codex como infraestrutura interna, sem experiência visual separada de Supabase.
+- Planos de workspace, qualidade de UI/demonstração e integração/lançamento.
+- `GLOSSARY.md` define a linguagem do domínio; `docs/data-mapping.md` registra entidades, estados, gaps, invariantes e trilhas de schema candidatas.
+- Snapshot inicial: 102 arquivos, cerca de 1,82 MiB, commit de importação `7cf559bcf8ebfd5ba411f6b38620d2e44f9a70fd`.
+- O second brain do projeto está nos arquivos de contexto versionáveis da raiz Produção (`AGENTS.md`, `PROJECT_CONTEXT.md`, `docs/STATE.md`, regras e planos). A pasta de Estudo não recebe essas mudanças automaticamente.
+- Git: branch local `codex/server-hardening`, HEAD `f7d3ecb`; `git remote -v` não lista remoto. Há alterações rastreadas e arquivos novos ainda sem commit, portanto as versões atuais existem apenas na árvore local até a revisão e o próximo checkpoint.
 
-## Limites atuais
+## Segurança e limites
 
-- O snapshot mantém a UI, telas, contexto, seeds sintéticos, servidor/API, manifests e lockfiles. Foram excluídos caches, arquivos .env*, chaves/certificados, cópias de ferramenta e migrations/schemas Antigravity da raiz. Os módulos de aplicação em src/database foram preservados porque a UI importa esses repositórios; o helper migrations.ts é legado e não constitui a história Supabase ativa.
-- firebase-applet-config.json permaneceu por ser configuração de cliente importada diretamente pela aplicação; verificar projeto e restrições antes de homologar.
-- `server.ts` agora responde HTTP 503 em todas as rotas `/api` até autenticação, autorização, validação e handlers auditáveis existirem; o servidor de desenvolvimento escuta apenas em `127.0.0.1`.
-- `src/lib/supabase.ts` não sincroniza usuários ou catálogo pelo navegador e não envia senha. O status de saúde fica offline quando o backend não está configurado ou indisponível.
-- O gerador de SQL em `src/database/migrations.ts` foi ajustado para não criar coluna de senha/hash no perfil e não exportar senha, hash, nem senha padrão. O seed é explicitamente sintético e não serve para bootstrap de produção.
-- Seeds locais ainda contêm credenciais fictícias para o login de demonstração. Isso é exclusivamente modo local; o fluxo de Auth real ainda precisa ser integrado antes de qualquer uso com pessoas ou dados reais.
-- Não conectamos banco remoto, não aplicamos migrations remotas e não publicamos a aplicação.
-- O servidor local do Antigravity segue ativo; não foi iniciado ou interrompido pelo Codex.
-- Conferência visual no navegador em `localhost:3001` mostrou os filtros de casas coloridos numa faixa única. O scroll do mouse moveu a faixa até o fim e ela foi restaurada ao início.
+- `server.ts` retorna HTTP 503 em `/api` até existirem autenticação, autorização, validação e handlers auditáveis; o servidor de desenvolvimento vincula em `127.0.0.1`.
+- `src/lib/supabase.ts` mantém sync de usuário/catálogo desativado e informa backend offline sem configuração; seeds locais seguem sintéticas.
+- `src/database/migrations.ts` e `src/db/*` são código legado de preview/Drizzle, não a história Supabase ativa. O candidato `codex/supabase-integration` tem migrations e RLS mais completas, mas sua árvore estava com mudanças não commitadas e ainda precisa de compatibilidade e revisão integral.
+- `src/db/queries.ts` contém um upsert de usuário que exclui registros conflitantes por login/e-mail e preenche hash ausente com `sha256:default`; esse caminho precisa ser removido antes de qualquer uso.
+- Migrations Antigravity de `database/` e `supabase/migrations/20261028…` não são candidatas a execução: competem com a trilha Codex e incluem políticas abertas e campos de senha/fallback.
+- Não foi consultado nem alterado banco remoto; não foram aplicadas migrations, configuradas chaves, usados dados reais ou feita publicação.
+- O login da aplicação atual continua sendo demo/local. O hash demo não é autenticação de produção; Auth real, isolamento por organização e persistência ainda precisam ser integrados à UI preservada.
 
-## Próximo passo
+## Verificação desta rodada
 
-Enquanto a fila serial segue no Antigravity, concluir apenas revisões locais que não mexem na UI nem na pasta de origem. Depois reconciliar cada alteração visual aprovada na raiz canônica e iniciar a integração de Auth e persistência com mapeamento explícito de domínio, RLS e trilha de auditoria.
+- `git diff --check`: passou sem erros de whitespace.
+- `npm run build`: passou. O Vite avisou sobre o uso futuro de `__dirname` e o bundle JavaScript acima de 500 kB.
+- `npm run lint` executou o TypeScript e ainda falha em três referências fora das telas desta rodada: `src/domain/auth.test.ts:22` (migration ausente), `src/screens/ParceriasScreen.tsx:244` (valor possivelmente indefinido) e `src/screens/ParceriasScreen.tsx:948` (tom `info` fora da união permitida). Nenhum teste automatizado foi executado.
+- No viewport de referência 1562 × 1155 px, os quatro grupos foram abertos; clique em subtelas e em um separador levou à seção com o seletor ativo. Parcerias e Estoque cresceram além do mínimo conforme seus formulários e tabelas. Não foi observada rolagem horizontal; Entradas voltou ao topo quando selecionada.
+- HTTP 200 foi confirmado em 3001 e 3002. A prévia da raiz Produção é aberta em nova aba; a interface antiga em 3001 não foi recarregada nem substituída.
+- Não foram usados dados reais, executados testes automatizados, conectados bancos remotos, aplicadas migrations nem feita publicação.
 
-## Pendências de produto/lançamento
+## Próximo passo recomendado
 
-1. Reconciliar o prompt de transições que resta na fila após finalizar a tarefa ativa.
-2. Concluir hardening dos serviços e substituir login local de demonstração por Supabase Auth antes de uso com pessoas ou dados reais.
-3. Formalizar corretoras, carteiras, redes, taxas, unidade de saldo, origem/data da cotação e fluxo de autorização de destino.
-4. Revisar contratos/migrations, RLS, cofres, step-up, rotação/recuperação, bootstrap e convite.
-5. Preparar homologação com dados fictícios, observabilidade e backup/restore; separar chaves/instâncias de homologação e produção.
-6. A publicação real depende de configuração do titular e autorização explícita de liberação.
+Revisar o diff desta mudança e criar um checkpoint Git local. Depois, corrigir os três erros de TypeScript já conhecidos e decidir com o titular qual remoto Git será usado para backup e colaboração.
 
+## Pendências para lançamento
+
+1. Resolver o mapeamento entre `socio`, `manager` e `aprovador`, além das regras de aprovação de destino.
+2. Definir ativos, redes, precisão decimal, status de transferência e tratamento de cotações/taxas.
+3. Integrar Auth invite-only, memberships, autorização e adaptadores de dados sem fallback silencioso para demo.
+4. Revisar grants, RLS, RPCs, vault, rotação/recuperação, observabilidade e backup/restore; validar em staging somente com dados fictícios.
+5. Escolher e configurar hospedagem, domínio, e-mail e ambientes de staging/produção.
+6. Aplicar migrations remotas, conectar dados reais ou publicar produção somente com configuração e liberação explícita do titular.

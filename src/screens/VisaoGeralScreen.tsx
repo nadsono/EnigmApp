@@ -29,14 +29,25 @@ export const VisaoGeralScreen: React.FC = () => {
     (d) => d.type === 'deposito_casa' && d.status === 'pretendido'
   );
   const stockPartnershipsCount = partnerships.filter((p) => p.status === 'estoque').length;
+  const hasPrioritizedActions =
+    openDivergences.length > 0 ||
+    transitWithdrawals.length > 0 ||
+    openEntries.length > 0 ||
+    pendingDeposits.length > 0;
 
   return (
-    <div className="flex flex-col gap-[20px]">
+    <div
+      className="flex flex-col justify-between gap-[28px]"
+      style={{ minHeight: 'calc(100svh - 126px)' }}
+    >
       <div className="flex flex-wrap justify-between items-center gap-[12px]">
         <h1 className="m-0 text-[22px] font-bold text-[#0F172A] tracking-[-0.02em]">
           Visão Geral
         </h1>
         <div className="flex flex-wrap items-center gap-[10px]">
+          <span className="px-[10px] py-[6px] rounded-full border border-[#CBD5E1] bg-[#F8FAFC] text-[#475569] text-[11px] font-medium">
+            Dados de demonstração
+          </span>
           <button
             type="button"
             onClick={resetDemoData}
@@ -48,8 +59,8 @@ export const VisaoGeralScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Linha 1: Cards KPI Interativos com Borda Lateral e Equivalente R$ Discreto */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-[12px]">
+      {/* Indicadores principais: 3 colunas no desktop para leitura sem apertar valores */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-[16px] gap-y-[16px]">
         <button
           type="button"
           onClick={() => setActiveScreen('saldos')}
@@ -164,44 +175,14 @@ export const VisaoGeralScreen: React.FC = () => {
         </button>
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)] gap-[24px] items-stretch">
       {/* Barra Visual de Alocação do Capital Global */}
       {globalSummary.totalGlobalCapital > 0 && (
-        <div className="bg-white border border-[#E2E8F0] rounded-[12px] px-[18px] py-[12px] flex flex-col gap-[8px]">
-          <div className="flex flex-wrap justify-between items-center text-[11.5px] font-semibold text-[#475569]">
-            <span className="text-[#0F172A]">Distribuição da Banca em Tempo Real</span>
-            <div className="flex flex-wrap items-center gap-[14px]">
-              <span className="flex items-center gap-[5px]">
-                <span className="w-[8px] h-[8px] rounded-full bg-[#0F6B5C]" />
-                Casas (
-                {Math.round(
-                  (globalSummary.availableInHouses / globalSummary.totalGlobalCapital) * 100
-                )}
-                %)
-              </span>
-              <span className="flex items-center gap-[5px]">
-                <span className="w-[8px] h-[8px] rounded-full bg-[#334155]" />
-                Carteiras (
-                {Math.round(
-                  (globalSummary.totalBankBalances / globalSummary.totalGlobalCapital) * 100
-                )}
-                %)
-              </span>
-              <span className="flex items-center gap-[5px]">
-                <span className="w-[8px] h-[8px] rounded-full bg-[#94A3B8]" />
-                Em Aberto (
-                {Math.round(
-                  (globalSummary.reservedInOpenBets / globalSummary.totalGlobalCapital) * 100
-                )}
-                %)
-              </span>
-              <span className="flex items-center gap-[5px]">
-                <span className="w-[8px] h-[8px] rounded-full bg-[#B45309]" />
-                Em Trânsito (
-                {Math.round(
-                  (globalSummary.inTransitWithdrawals / globalSummary.totalGlobalCapital) * 100
-                )}
-                %)
-              </span>
+        <div className="bg-white border border-[#E2E8F0] rounded-[12px] px-[20px] py-[18px] flex flex-col gap-[14px]">
+          <div>
+            <div className="text-[14px] font-semibold text-[#0F172A]">Distribuição do capital</div>
+            <div className="text-[12px] text-[#64748B] mt-[4px]">
+              Saldo e participação por destino, calculados sobre o capital registrado.
             </div>
           </div>
           <div className="w-full h-[8px] rounded-full bg-[#F1F5F9] overflow-hidden flex gap-[2px]">
@@ -234,21 +215,60 @@ export const VisaoGeralScreen: React.FC = () => {
               title={`Saques em trânsito: ${formatCurrencyBRL(globalSummary.inTransitWithdrawals)}`}
             />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[20px] gap-y-[14px] pt-[2px]">
+            {[
+              {
+                label: 'Casas',
+                amount: globalSummary.availableInHouses,
+                color: 'bg-[#0F6B5C]',
+              },
+              {
+                label: 'Carteiras e corretoras',
+                amount: globalSummary.totalBankBalances,
+                color: 'bg-[#334155]',
+              },
+              {
+                label: 'Apostas em aberto',
+                amount: globalSummary.reservedInOpenBets,
+                color: 'bg-[#94A3B8]',
+              },
+              {
+                label: 'Saques em trânsito',
+                amount: globalSummary.inTransitWithdrawals,
+                color: 'bg-[#B45309]',
+              },
+            ].map((item) => (
+              <div key={item.label} className="border-t border-[#E2E8F0] pt-[10px]">
+                <div className="flex items-center justify-between gap-[8px] text-[12px] text-[#475569]">
+                  <span className="inline-flex items-center gap-[7px]">
+                    <span className={`w-[8px] h-[8px] rounded-full shrink-0 ${item.color}`} />
+                    {item.label}
+                  </span>
+                  <span className="font-medium tabular-nums">
+                    {Math.round((item.amount / globalSummary.totalGlobalCapital) * 100)}%
+                  </span>
+                </div>
+                <div className="mt-[4px] text-[14px] font-semibold tabular-nums text-[#0F172A]">
+                  {formatCurrencyBRL(item.amount)}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Fluxo Operacional Conectado (conforme mapa de integração) */}
+      {/* Situação das contas e principais próximos passos */}
       <section className="bg-white border border-[#CBD5E1] rounded-[12px] overflow-hidden flex flex-col">
         <div className="px-[18px] py-[11px] bg-[#0F172A] text-white flex flex-wrap justify-between items-center gap-[8px]">
           <div className="text-[14.5px] font-bold text-white">
-            Estado operacional das contas e fluxo conectado
+            Situação das contas
           </div>
           <div className="text-[12px] text-[#94A3B8]">
-            Clique em qualquer indicador para abrir a tela responsável
+            Selecione um item para abrir os detalhes
           </div>
         </div>
 
-        <div className="p-[16px] bg-[#F8FAFC] grid grid-cols-2 md:grid-cols-6 gap-[10px]">
+        <div className="p-[18px] bg-[#F8FAFC] grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-[12px]">
           <button
             type="button"
             onClick={() => setActiveScreen('estoque')}
@@ -334,13 +354,14 @@ export const VisaoGeralScreen: React.FC = () => {
           </button>
         </div>
       </section>
+      </div>
 
       {/* Ações Prioritárias de Triagem (levam ao registro original) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px]">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-[24px]">
         <section className="bg-white border border-[#CBD5E1] rounded-[12px] overflow-hidden flex flex-col">
           <div className="px-[18px] py-[11px] bg-[#0F172A] text-white flex justify-between items-center">
             <div className="text-[14.5px] font-bold text-white">
-              Ações prioritárias (triagem direta)
+              Ações prioritárias
             </div>
             <button
               type="button"
@@ -459,6 +480,15 @@ export const VisaoGeralScreen: React.FC = () => {
                 </div>
               );
             })}
+
+            {!hasPrioritizedActions && (
+              <div className="px-[18px] py-[22px] text-[13px] text-[#475569]">
+                <div className="font-semibold text-[#0F172A]">Nenhuma ação pendente</div>
+                <div className="mt-[4px]">
+                  Divergências, saques e operações em aberto aparecem aqui quando houver.
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -519,6 +549,13 @@ export const VisaoGeralScreen: React.FC = () => {
                     </td>
                   </tr>
                 ))}
+                {ledgerMovements.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-[12px] py-[22px] text-center text-[13px] text-[#64748B]">
+                      Nenhum registro recente para exibir.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { EnigmaProvider, useEnigma } from './context/EnigmaContext.tsx';
 import { SidebarNav } from './components/SidebarNav.tsx';
+import { ScrollspyScreenGroup } from './components/ScrollspyScreenGroup.tsx';
 import { VisaoGeralScreen } from './screens/VisaoGeralScreen.tsx';
 import { EntradasScreen } from './screens/EntradasScreen.tsx';
 import { SaquesScreen } from './screens/SaquesScreen.tsx';
@@ -24,6 +25,68 @@ import {
   PROJECT_DATABASE_BOOT_MODE,
   ISOLATED_MAINTENANCE_DOMAIN_PARAM,
 } from './database/systemMaintenance.ts';
+
+const OVERVIEW_SECTIONS = [
+  {
+    id: 'visao_geral',
+    label: 'Resumo Geral',
+    component: <VisaoGeralScreen />,
+  },
+  {
+    id: 'minha_performance',
+    label: 'Minha Performance',
+    component: <MinhaPerformanceScreen />,
+  },
+] as const;
+
+const CASH_SECTIONS = [
+  {
+    id: 'saques',
+    label: 'Saques & Depósitos',
+    component: <SaquesScreen />,
+  },
+  {
+    id: 'saldos',
+    label: 'Saldos & Caixa',
+    component: <SaldosCaixaScreen />,
+  },
+  {
+    id: 'conferencia',
+    label: 'Conferência',
+    component: <ConferenciaScreen />,
+  },
+  {
+    id: 'pendencias',
+    label: 'Pendências',
+    component: <PendenciasScreen />,
+  },
+] as const;
+
+const PARTNERSHIP_SECTIONS = [
+  {
+    id: 'parcerias',
+    label: 'Titulares em Operação',
+    component: <ParceriasScreen />,
+  },
+  {
+    id: 'estoque',
+    label: 'Estoque de Parcerias',
+    component: <EstoqueScreen />,
+  },
+] as const;
+
+const FINANCE_SECTIONS = [
+  {
+    id: 'custos',
+    label: 'Custos & Líquido',
+    component: <CustosLiquidoScreen />,
+  },
+  {
+    id: 'equipe',
+    label: 'Equipe & Fechamento de Operadores',
+    component: <EquipeScreen />,
+  },
+] as const;
 
 const IsolatedMaintenanceConsole: React.FC = () => {
   const {
@@ -165,6 +228,22 @@ const EnigmaWorkspace: React.FC = () => {
   } = useEnigma();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isAuthenticated || isIsolatedMaintenanceDomainActive()) return;
+
+    const standaloneScreen =
+      activeScreen === 'entradas' ||
+      activeScreen === 'configuracoes' ||
+      (currentUser.role === 'operador' && activeScreen === 'custos');
+
+    if (standaloneScreen) {
+      const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth';
+      window.scrollTo({ top: 0, behavior });
+    }
+  }, [activeScreen, currentUser.role, isAuthenticated]);
+
   if (isIsolatedMaintenanceDomainActive()) {
     return <IsolatedMaintenanceConsole />;
   }
@@ -204,16 +283,20 @@ const EnigmaWorkspace: React.FC = () => {
           </div>
         )}
 
-        {activeScreen === 'visao_geral' && <VisaoGeralScreen />}
+        {OVERVIEW_SECTIONS.some((section) => section.id === activeScreen) && (
+          <ScrollspyScreenGroup groupId="visao-geral" sections={OVERVIEW_SECTIONS} />
+        )}
         {activeScreen === 'entradas' && <EntradasScreen />}
-        {activeScreen === 'saques' && <SaquesScreen />}
-        {activeScreen === 'conferencia' && <ConferenciaScreen />}
-        {activeScreen === 'pendencias' && <PendenciasScreen />}
-        {activeScreen === 'saldos' && <SaldosCaixaScreen />}
-        {activeScreen === 'parcerias' && <ParceriasScreen />}
-        {activeScreen === 'equipe' && <EquipeScreen />}
-        {activeScreen === 'custos' && <CustosLiquidoScreen />}
-        {activeScreen === 'minha_performance' && <MinhaPerformanceScreen />}
+        {CASH_SECTIONS.some((section) => section.id === activeScreen) && (
+          <ScrollspyScreenGroup groupId="caixa" sections={CASH_SECTIONS} />
+        )}
+        {PARTNERSHIP_SECTIONS.some((section) => section.id === activeScreen) && (
+          <ScrollspyScreenGroup groupId="parcerias" sections={PARTNERSHIP_SECTIONS} />
+        )}
+        {!isOperator && (activeScreen === 'custos' || activeScreen === 'equipe') && (
+          <ScrollspyScreenGroup groupId="financeiro" sections={FINANCE_SECTIONS} />
+        )}
+        {isOperator && activeScreen === 'custos' && <CustosLiquidoScreen />}
         {activeScreen === 'estoque' && <EstoqueScreen />}
         {activeScreen === 'configuracoes' && <ConfiguracoesScreen />}
       </main>

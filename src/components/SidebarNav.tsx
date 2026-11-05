@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeftRight,
-  Calculator,
+  ClipboardList,
   Calendar,
   LayoutDashboard,
   LogOut,
@@ -159,7 +159,7 @@ export const SidebarNav: React.FC = () => {
       id: 'grp_entradas',
       label: 'Entradas',
       shortLabel: 'Entradas',
-      icon: <Calculator className="w-[15px] h-[15px] shrink-0" strokeWidth={1.85} />,
+      icon: <ClipboardList className="w-[15px] h-[15px] shrink-0" strokeWidth={1.85} />,
       defaultScreen: 'entradas',
       screens: ['entradas'],
       badge: incompleteEntriesCount > 0 ? incompleteEntriesCount : undefined,
@@ -167,8 +167,8 @@ export const SidebarNav: React.FC = () => {
       subTabs: [
         {
           id: 'entradas',
-          label: 'Calculadora & Histórico',
-          shortLabel: 'Calculadora',
+          label: 'Operações',
+          shortLabel: 'Operações',
           badge: incompleteEntriesCount > 0 ? incompleteEntriesCount : undefined,
           badgeColor: 'amber',
         },
