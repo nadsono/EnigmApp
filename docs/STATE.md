@@ -10,7 +10,7 @@
 - Em Conferência, selecionar uma divergência usa controles de botão acessíveis por teclado. O seletor de casas em Entradas mantém o redesenho neutro já feito e sua alteração local pré-existente foi preservada.
 - O cadastro direto no Estoque agora inclui endereço opcional e observações operacionais; a área fica restrita a admin/operador e nomes de titulares no estoque são ocultados para quem não tem acesso à ficha. A edição da ficha preserva os dados KYC como leitura, controla campos sensíveis e exige confirmação explícita e evento de histórico ao alterar destinos financeiros.
 - As verificações de permissão e o histórico de destino são locais à demonstração. A heurística de rede ajuda a não bloquear fichas antigas com chave PIX, mas não valida endereço cripto e não substitui autorização/auditoria no servidor.
-- O servidor Antigravity da pasta `Enigma Gestão (Estudo)\Google IA Studio\enigma-gestão-GoogleIAStudio-v1` continua em `0.0.0.0:3001`. O processo da raiz Produção que ocupava `127.0.0.1:3001` foi encerrado sem tocar no servidor antigo.
+- A última verificação não encontrou resposta HTTP em `127.0.0.1:3001` para o servidor da pasta de Estudo (conexão recusada). Ele não foi iniciado nem alterado nesta rodada; não presumir que a aba antiga ainda tenha servidor ativo.
 - O preview da raiz canônica de Produção fica em `http://127.0.0.1:3002`, com HMR em `24679`; o servidor antigo mantém HMR em `24678`. O `vite.config.ts` não foi alterado. O preview da Produção está com HMR habilitado para refletir edições da pasta compartilhada.
 - Há duas janelas Antigravity abertas: uma na raiz Produção e outra na pasta de Estudo, em `PendenciasScreen.tsx`. O workspace antigo e seus arquivos não foram modificados.
 
@@ -40,7 +40,7 @@
 - `git diff --check`: passou sem erros de whitespace. A mudança de duplicação foi identificada por duas renderizações condicionais para `estoque`; validação visual pós-correção em 75%/50% ainda está pendente. Nenhum teste automatizado foi executado.
 - `npm run lint` executou o TypeScript e ainda falha em três referências fora das telas desta rodada: `src/domain/auth.test.ts:22` (migration ausente), `src/screens/ParceriasScreen.tsx:244` (valor possivelmente indefinido) e `src/screens/ParceriasScreen.tsx:948` (tom `info` fora da união permitida). Nenhum teste automatizado foi executado.
 - No viewport de referência 1562 × 1155 px, os quatro grupos foram abertos; clique em subtelas e em um separador levou à seção com o seletor ativo. Parcerias e Estoque cresceram além do mínimo conforme seus formulários e tabelas. Não foi observada rolagem horizontal; Entradas voltou ao topo quando selecionada.
-- HTTP 200 foi confirmado em 3001 e 3002. A prévia da raiz Produção é aberta em nova aba; a interface antiga em 3001 não foi recarregada nem substituída.
+- A prévia de Produção em 3002 responde HTTP 200 e entrega os módulos novos; a porta 3001 recusou conexão nesta checagem. A tela antiga não foi reaberta nem substituída.
 - Não foram usados dados reais, executados testes automatizados, conectados bancos remotos, aplicadas migrations nem feita publicação.
 
 ## Próximo passo recomendado
