@@ -39,15 +39,15 @@ export const SYSTEM_VERSIONS: SystemVersionMetadata[] = [
     title: 'v2.0 — Offshore & Cripto (OKX / Binance / MetaMask + Saldo USDT & EUR €)',
     subtitle: 'Corretora por Operador (OKX ou Binance) · MetaMask Ilimitada · Casas em USDT e EUR (€)',
     description:
-      'Operação 100% focada em Casas Gringas Offshore e Cripto: corretora à escolha do operador (OKX, Binance, Bybit), carteiras MetaMask ilimitadas (BEP20/ERC20), protocolo KYC Offshore, Rollover 1x/3x e suporte a casas com depósito via USDT e saldo interno em Euro (EUR €).',
+      'Operação 100% focada em Casas Gringas Offshore e Cripto: corretora à escolha do operador (OKX, Binance, Bybit), carteiras com redes configuráveis, protocolo KYC Offshore, Rollover 1x/3x e suporte a casas com depósito via USDT e saldo interno em Euro (EUR €).',
     releasedAt: '03/11/2026 22:15',
     defaultCurrencyMode: 'usdt_brl_mirror',
     defaultUsdtBrlRate: 5.48,
     defaultEurUsdtRate: 1.08,
     highlights: [
-      'Corretora à escolha do operador: OKX, Binance ou Bybit (mesmo fluxo QR Code BEP20/ERC20)',
+      'Corretora à escolha do operador: OKX, Binance ou Bybit (rede e ativo definidos por operação)',
       'Casas com depósito via USDT e saldo interno em EUR (€) ou USDT ($)',
-      'Carteiras MetaMask ilimitadas por parceria (0x...) + OvertimeMarkets Web3',
+      'Carteiras por parceria com endereço e rede próprios',
       'Catálogo completo: Clones Blaze (BC.Game, BetFury 3x, FortuneJack, Duel Sumsub, Bet25 Vídeo), Pinnacle AsianConnect, Cloudbet, Duelbits, Thunderpick, Sportsbet.io',
     ],
   },
@@ -57,7 +57,7 @@ export const SYSTEM_VERSIONS: SystemVersionMetadata[] = [
     title: 'v1.5 — Operação Híbrida (Bancos PIX + Corretoras OKX/Binance & Carteiras Cripto)',
     subtitle: 'Mantém Bancos Nacionais (Inter, PGBank, Nubank) + Ecossistema Cripto (OKX, Binance, MetaMask, EUR/USDT)',
     description:
-      'Modo híbrido que une os dois mundos: mantém todas as Contas Bancárias e chaves PIX (Inter, PGBank, Nubank, C6) e Casas Nacionais (.bet.br) ao lado das Corretoras Cripto (OKX, Binance), Carteiras MetaMask (BEP20/ERC20) e Casas Offshore em USDT e EUR.',
+      'Modo híbrido que une os dois mundos: mantém todas as Contas Bancárias e chaves PIX (Inter, PGBank, Nubank, C6) e Casas Nacionais (.bet.br) ao lado das Corretoras Cripto (OKX, Binance), carteiras com redes configuráveis e Casas Offshore em USDT e EUR.',
     releasedAt: '03/11/2026 22:15',
     defaultCurrencyMode: 'usdt_brl_mirror',
     defaultUsdtBrlRate: 5.48,

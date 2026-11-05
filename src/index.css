@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/appearance.css";
 
 @layer base {
   :root {
@@ -15,8 +16,8 @@
   }
 
   body {
-    color: #111815;
-    background-color: #E4EAE7;
+    color: var(--text-primary);
+    background-color: var(--page-bg);
     letter-spacing: -0.015em;
   }
 
@@ -36,7 +37,7 @@
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    border-color: #C5D1CC;
+    border-color: var(--control-border);
     transition: border-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
       box-shadow 140ms cubic-bezier(0.23, 1, 0.32, 1),
       background-color 140ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -45,15 +46,15 @@
   input:not([type="checkbox"]):not([type="radio"]):hover,
   select:hover,
   textarea:hover {
-    border-color: #8FA39B;
+    border-color: var(--border-strong);
   }
 
   input:focus,
   select:focus,
   textarea:focus {
     outline: none;
-    border-color: #0D6E57 !important;
-    box-shadow: 0 0 0 3px rgba(13, 110, 87, 0.16);
+    border-color: var(--focus) !important;
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 
   button {
@@ -70,7 +71,7 @@
   /* Elevação e borda estrutural clara para todas as seções e cards */
   section,
   .enigma-card {
-    border-color: #CBD6D1 !important;
+    border-color: var(--border) !important;
     box-shadow:
       0 2px 8px rgba(17, 24, 21, 0.05),
       0 1px 2px rgba(17, 24, 21, 0.04);
@@ -84,51 +85,51 @@
   }
 
   thead tr {
-    background-color: #E2EAE6 !important;
-    border-top: 1px solid #C5D1CC !important;
-    border-bottom: 2px solid #8FA39B !important;
+    background-color: var(--table-head-bg) !important;
+    border-top: 1px solid var(--control-border) !important;
+    border-bottom: 2px solid var(--border-strong) !important;
   }
 
   thead th {
-    color: #111815 !important;
+    color: var(--text-primary) !important;
     font-weight: 700 !important;
     font-size: 11px !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding-top: 9px !important;
-    padding-bottom: 9px !important;
+    padding-top: var(--table-head-padding, 9px) !important;
+    padding-bottom: var(--table-head-padding, 9px) !important;
   }
 
   /* Separador vertical sutil entre colunas para leitura rápida estilo planilha */
   thead th + th {
-    border-left: 1px solid #C5D1CC;
+    border-left: 1px solid var(--control-border);
   }
 
   tbody td + td {
-    border-left: 1px solid #E2EAE6;
+    border-left: 1px solid var(--table-head-bg);
   }
 
   /* Linhas com borda horizontal nítida e listras alternadas (zebra) */
   tbody tr {
-    border-bottom: 1px solid #CBD6D1 !important;
+    border-bottom: 1px solid var(--border) !important;
     transition: background-color 100ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   tbody tr:nth-child(odd) {
-    background-color: #FFFFFF;
+    background-color: var(--surface);
   }
 
   tbody tr:nth-child(even) {
-    background-color: #F2F6F4;
+    background-color: var(--table-stripe-bg);
   }
 
   tbody tr:hover {
-    background-color: #E3F2EE !important;
+    background-color: var(--table-hover-bg) !important;
   }
 
   /* Divisores de listas (.divide-y) sempre visíveis */
   .divide-y > :not([hidden]) ~ :not([hidden]) {
-    border-color: #CBD6D1 !important;
+    border-color: var(--border) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {

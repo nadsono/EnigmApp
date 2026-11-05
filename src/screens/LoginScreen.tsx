@@ -138,7 +138,7 @@ export const LoginScreen: React.FC = () => {
                 ENIGMA<span className="text-[#0D6E57]">.</span>
               </div>
               <div className="text-[9.5px] font-semibold tracking-[0.14em] uppercase text-[#78837E] mt-[4px]">
-                GRUPO · GESTÃO DE OPERAÇÕES
+                Gestão de operações
               </div>
             </div>
           </div>
@@ -247,11 +247,11 @@ export const LoginScreen: React.FC = () => {
       <main className="w-full max-w-[1260px] mx-auto px-[24px] sm:px-[48px] pt-[36px] pb-[72px] flex-1">
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-[44px] lg:gap-[40px] items-start">
           {/* COLUNA ESQUERDA: Hero + Slogan + Tour Visual ("Spoiler" de Funcionalidades em Scroll) */}
-          <div className="lg:col-span-7 flex flex-col gap-[64px]">
+          <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col gap-[64px]">
             {/* DOBRA 1: Mensagem Editorial + Slogan "Cadê o dinheiro que estava aqui?" */}
             <div className="min-h-[calc(100vh-220px)] flex flex-col justify-center items-start py-[12px]">
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#0D6E57] mb-[16px]">
-                ENIGMA GRUPO
+                ENIGMA
               </span>
 
               <h1 className="text-[40px] sm:text-[52px] font-extrabold tracking-[-0.035em] leading-[1.06] text-[#111815]">
@@ -316,14 +316,14 @@ export const LoginScreen: React.FC = () => {
 
             {/* DOBRA 2 EM DIANTE: Tour Visual ("Spoiler" sem expor dados sensíveis) */}
             <div id="enigma-spoiler-tour" className="flex flex-col gap-[40px] pt-[16px]">
-              {/* EXEMPLOS DE ENTRADAS REAIS */}
+              {/* EXEMPLOS FICTÍCIOS PARA DEMONSTRAÇÃO */}
               <div id="enigma-social-proof" className="flex flex-col gap-[12px] border-t border-[#DCE4E0] pt-[36px]">
                 <div className="flex flex-col gap-[4px]">
                   <h2 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.03em] text-[#111815]">
-                    Exemplos de Operações da Mesa
+                    Exemplos de operações
                   </h2>
                   <p className="text-[13px] text-[#5F6C66] leading-[1.5] max-w-[620px]">
-                    Bilhetes reais de arbitragem e cobertura executados pela operação (dados de titulares mascarados).
+                    Casos fictícios para demonstração e treinamento. Não representam titulares, contas ou apostas reais.
                   </p>
                 </div>
 
@@ -334,17 +334,17 @@ export const LoginScreen: React.FC = () => {
               <div className="flex flex-col gap-[6px] border-t border-[#DCE4E0] pt-[28px]">
                 <div className="inline-flex items-center gap-[8px]">
                   <span className="px-[9px] py-[2px] rounded-full bg-[#111815] text-[#34D399] text-[10.5px] font-bold uppercase tracking-wider">
-                    Tour da Mesa
+                    Conheça a plataforma
                   </span>
                   <span className="text-[11.5px] font-semibold text-[#68746F]">
-                    Continuidade Visual · Mesma interface de dentro da mesa
+                    A mesma interface disponível após entrar
                   </span>
                 </div>
                 <h3 className="text-[22px] sm:text-[24px] font-bold tracking-[-0.03em] text-[#111815]">
                   Velocidade de planilha, precisão de tesouraria.
                 </h3>
                 <p className="text-[13.5px] text-[#5F6C66] leading-[1.55] max-w-[580px]">
-                  Veja como a operação organiza saldos, cálculos de retorno, conciliação diária e fechamento de equipe em uma única linha de comando.
+                  Organize saldos, operações, conferências e fechamento da equipe em um só lugar.
                 </p>
               </div>
 
@@ -510,13 +510,13 @@ export const LoginScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* SPOILER 2: Calculadora Multi-Ponta & Simulador de Retorno */}
+              {/* SPOILER 2: Distribuição das entradas e estimativa de retorno */}
               <div className="bg-white border border-[#CBD6D1] rounded-[14px] overflow-hidden shadow-[0_6px_20px_rgba(17,24,21,0.05)]">
                 <div className="px-[18px] py-[12px] bg-[#111815] text-white flex flex-wrap items-center justify-between gap-[10px]">
                   <div className="flex items-center gap-[8px]">
                     <Calculator className="w-[15px] h-[15px] text-[#10B981]" strokeWidth={2} />
                     <span className="text-[13.5px] font-bold">
-                      2. Calculadora de Distribuição & Retorno Garantido
+                      2. Distribuição das entradas e retorno estimado
                     </span>
                   </div>
                   <div className="flex items-center gap-[4px] bg-[#18241F] p-[3px] rounded-[7px] border border-[#263830] text-[11px]">
@@ -697,7 +697,7 @@ export const LoginScreen: React.FC = () => {
           </div>
 
           {/* COLUNA DIREITA: Card de Login / Cadastro TRAVADO NA TELA (Sticky) durante todo o scroll */}
-          <div className="lg:col-span-5 lg:sticky lg:top-[88px] flex justify-center lg:justify-end">
+          <div className="order-1 lg:order-2 lg:col-span-5 lg:sticky lg:top-[88px] flex justify-center lg:justify-end">
             <div className="w-full max-w-[430px] bg-[#FFFFFF] border border-[#CBD6D1] rounded-[16px] shadow-[0_12px_36px_rgba(17,24,21,0.06)] p-[32px] sm:p-[38px]">
               {/* Ícone de cadeado no topo do card */}
               <div className="w-[42px] h-[42px] rounded-[11px] bg-[#E2F2EE] text-[#0D6E57] flex items-center justify-center mb-[20px]">
@@ -1091,7 +1091,7 @@ export const LoginScreen: React.FC = () => {
       {/* Rodapé Minimalista */}
       <footer className="w-full border-t border-[#E4EAE7] bg-[#F7F8F7]">
         <div className="w-full max-w-[1320px] mx-auto px-[24px] sm:px-[48px] py-[22px] flex flex-wrap items-center justify-between gap-[10px] text-[12px] text-[#78837E]">
-          <span>© 2026 ENIGMA. Grupo · Gestão de operações</span>
+          <span>© 2026 Enigma</span>
           <span>“Cadê o dinheiro que estava aqui?” — Rastreabilidade total de ponta a ponta</span>
         </div>
       </footer>

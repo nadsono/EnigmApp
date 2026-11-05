@@ -1,6 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useEnigma } from '../context/EnigmaContext.tsx';
-import { formatCurrencyBRL, parseCurrencyInput } from '../domain/ledger.ts';
+import {
+  canUserAccessCredentials,
+  formatCurrencyBRL,
+  parseCurrencyInput,
+} from '../domain/ledger.ts';
 
 export const EstoqueScreen: React.FC = () => {
   const {
@@ -29,6 +33,8 @@ export const EstoqueScreen: React.FC = () => {
   const [atBanco, setAtBanco] = useState<string>('Inter');
   const [atEmail, setAtEmail] = useState<string>('');
   const [atChip, setAtChip] = useState<string>('');
+  const [atEndereco, setAtEndereco] = useState<string>('');
+  const [atNotas, setAtNotas] = useState<string>('');
   const [atCostStr, setAtCostStr] = useState<string>('200,00');
   const [selectedCloneHouses, setSelectedCloneHouses] = useState<string[]>([
     'Betano',
@@ -60,6 +66,8 @@ export const EstoqueScreen: React.FC = () => {
       stockPartnerships[0],
     [stockPartnerships, selectedStockId]
   );
+  const canCreateDirectPartnership =
+    currentUser.role === 'admin' || currentUser.role === 'operador';
 
   const activePartnerships = useMemo(
     () => partnerships.filter((p) => p.status === 'ativa'),
@@ -94,6 +102,8 @@ export const EstoqueScreen: React.FC = () => {
       chipLocation: atChip,
       selectedHouses: selectedCloneHouses,
       creationCost: parseCurrencyInput(atCostStr) || 0,
+      address: atEndereco,
+      notes: atNotas,
     });
   };
 
@@ -208,7 +218,11 @@ export const EstoqueScreen: React.FC = () => {
                         }`}
                     >
                       <td className="py-[10px] px-[8px] font-semibold">{item.code}</td>
-                      <td className="py-[10px] px-[8px]">{item.titularName}</td>
+                      <td className="py-[10px] px-[8px]">
+                        {canUserAccessCredentials(currentUser, item)
+                          ? item.titularName
+                          : 'Titular restrito'}
+                      </td>
                       <td
                         className={`py-[10px] px-[8px] ${bankText === 'Sem banco' ? 'text-[#B3261E]' : ''
                           }`}
@@ -346,6 +360,7 @@ export const EstoqueScreen: React.FC = () => {
       </div>
 
       {/* Formulário Inferior: Atendimento: cadastrar direto na minha planilha */}
+      {canCreateDirectPartnership ? (
       <section className="bg-white border border-[#E1E5E1] rounded-[14px] p-[20px] flex flex-col gap-[14px]">
         <div className="flex flex-wrap justify-between items-center gap-[8px]">
           <div className="text-[16px] font-semibold">
@@ -459,6 +474,32 @@ export const EstoqueScreen: React.FC = () => {
               className="p-[10px_12px] border border-[#CBD2CD] rounded-[8px] text-[14px]"
             />
           </div>
+          <div className="flex flex-col gap-[6px] sm:col-span-2 md:col-span-4">
+            <label htmlFor="a-end" className="text-[12px] font-medium text-[#66716C]">
+              Endereço (opcional)
+            </label>
+            <input
+              id="a-end"
+              autoComplete="street-address"
+              value={atEndereco}
+              onChange={(e) => setAtEndereco(e.target.value)}
+              placeholder="Rua, número, bairro, cidade - UF, CEP"
+              className="p-[10px_12px] border border-[#CBD2CD] rounded-[8px] text-[14px]"
+            />
+          </div>
+          <div className="flex flex-col gap-[6px] sm:col-span-2 md:col-span-4">
+            <label htmlFor="a-obs" className="text-[12px] font-medium text-[#66716C]">
+              Observações operacionais (opcional)
+            </label>
+            <textarea
+              id="a-obs"
+              rows={3}
+              value={atNotas}
+              onChange={(e) => setAtNotas(e.target.value)}
+              placeholder="Acordos de rotina, limites ou orientações da operação. Não inclua senhas, chaves, documentos ou dados pessoais."
+              className="p-[10px_12px] border border-[#CBD2CD] rounded-[8px] text-[14px] resize-y"
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap justify-between items-end gap-[14px]">
@@ -512,6 +553,11 @@ export const EstoqueScreen: React.FC = () => {
           </button>
         </div>
       </section>
+      ) : (
+        <div role="note" className="rounded-[10px] border border-[#E1E5E1] bg-white p-[16px] text-[13px] text-[#66716C]">
+          O cadastro direto de titulares contém dados pessoais e está restrito aos perfis autorizados.
+        </div>
+      )}
     </div>
   );
 };

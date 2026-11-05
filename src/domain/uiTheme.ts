@@ -1,5 +1,52 @@
 import type { HouseAccountStatus, LegResult, OperationType } from './types.ts';
 
+export interface AppearancePreferences {
+  theme: 'system' | 'light' | 'dark';
+  density: 'comfortable' | 'compact';
+  houseColors: 'discreet' | 'brand';
+}
+
+export const DEFAULT_APPEARANCE: Readonly<AppearancePreferences> = Object.freeze({
+  theme: 'system',
+  density: 'comfortable',
+  houseColors: 'discreet',
+});
+
+/** Invalid or future values fall back individually, without discarding valid choices. */
+export function normalizeAppearancePreferences(value: unknown): AppearancePreferences {
+  const candidate = value && typeof value === 'object'
+    ? value as Partial<AppearancePreferences>
+    : {};
+  return {
+    theme: candidate.theme === 'light' || candidate.theme === 'dark' ? candidate.theme : 'system',
+    density: candidate.density === 'compact' ? 'compact' : 'comfortable',
+    houseColors: candidate.houseColors === 'brand' ? 'brand' : 'discreet',
+  };
+}
+
+export function parseAppearancePreferences(serialized: string | null): AppearancePreferences {
+  try {
+    const envelope: unknown = serialized ? JSON.parse(serialized) : null;
+    if (!envelope || typeof envelope !== 'object' || !('version' in envelope)
+      || envelope.version !== 1 || !('preferences' in envelope)) {
+      return { ...DEFAULT_APPEARANCE };
+    }
+    return normalizeAppearancePreferences(envelope.preferences);
+  } catch {
+    return { ...DEFAULT_APPEARANCE };
+  }
+}
+
+export function appearanceStorageKey(authenticatedUserId: string | null): string {
+  return authenticatedUserId === null
+    ? 'enigma.appearance.v1.anonymous'
+    : `enigma.appearance.v1.user.${encodeURIComponent(authenticatedUserId)}`;
+}
+
+export function serializeAppearancePreferences(preferences: AppearancePreferences): string {
+  return JSON.stringify({ version: 1, preferences: normalizeAppearancePreferences(preferences) });
+}
+
 export interface HouseColorTheme {
   primary: string;
   bg: string;
@@ -30,7 +77,7 @@ export const CLONE_PRESETS: string[] = [
   'Superbet',
 ];
 
-export const HOUSE_COLOR_SUGGESTIONS: HouseColorSuggestion[] = [
+const HOUSE_COLOR_PALETTES: HouseColorSuggestion[] = [
   {
     id: 'pinnacle_orange',
     name: 'Laranja Pinnacle',
@@ -213,31 +260,42 @@ export const HOUSE_COLOR_SUGGESTIONS: HouseColorSuggestion[] = [
   },
 ];
 
+/** Keep the editable HEX intact; presentation follows theme and personal intensity. */
+function adaptHousePalette(palette: HouseColorTheme): HouseColorTheme {
+  const color = palette.primary;
+  return {
+    primary: color,
+    bg: `color-mix(in srgb, ${color} var(--house-surface-strength, 5%), var(--surface, #FFFFFF))`,
+    border: `color-mix(in srgb, ${color} var(--house-border-strength, 24%), var(--border, #CBD6D1))`,
+    text: `color-mix(in srgb, ${color} var(--house-text-strength, 26%), var(--house-ink, #1B2421))`,
+    badgeBg: `color-mix(in srgb, ${color} var(--house-badge-strength, 11%), var(--surface, #FFFFFF))`,
+    badgeText: `color-mix(in srgb, ${color} var(--house-text-strength, 26%), var(--house-ink, #1B2421))`,
+    ring: `color-mix(in srgb, ${color} 30%, transparent)`,
+  };
+}
+
+export const HOUSE_COLOR_SUGGESTIONS: HouseColorSuggestion[] = HOUSE_COLOR_PALETTES.map(
+  (suggestion) => ({ ...suggestion, theme: adaptHousePalette(suggestion.theme) })
+);
+
 /**
  * Converte qualquer HEX em um tema de cores leves (bg, border, text)
  */
 function buildLightPaletteFromHex(hex: string): HouseColorTheme {
-  const clean = hex.replace('#', '').trim();
-  if (!clean || clean.length < 6) {
+  let clean = hex.replace('#', '').trim();
+  if (/^[a-f\d]{3}$/i.test(clean)) clean = [...clean].map((digit) => digit + digit).join('');
+  if (!/^[a-f\d]{6}$/i.test(clean)) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'neutral_slate')!.theme;
   }
-  const r = parseInt(clean.substring(0, 2), 16) || 71;
-  const g = parseInt(clean.substring(2, 4), 16) || 85;
-  const b = parseInt(clean.substring(4, 6), 16) || 105;
-
-  return {
+  return adaptHousePalette({
+    ...HOUSE_COLOR_PALETTES.find((s) => s.id === 'neutral_slate')!.theme,
     primary: `#${clean}`,
-    bg: `rgba(${r}, ${g}, ${b}, 0.08)`,
-    border: `rgba(${r}, ${g}, ${b}, 0.32)`,
-    text: `rgba(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)}, 1)`,
-    badgeBg: `rgba(${r}, ${g}, ${b}, 0.16)`,
-    badgeText: `rgba(${Math.max(0, r - 45)}, ${Math.max(0, g - 45)}, ${Math.max(0, b - 45)}, 1)`,
-    ring: `rgba(${r}, ${g}, ${b}, 0.25)`,
-  };
+  });
 }
 
 /**
- * Resolve o tema de cor leve da casa de apostas baseado no nome, clone ou cor customizada
+ * Sugestão visual local por nome ou cor customizada, sem verificação de identidade oficial.
+ * Grupo de clone é mantido na assinatura por compatibilidade; não define identidade visual.
  */
 export function getHouseColorTheme(
   houseName: string,
@@ -254,10 +312,9 @@ export function getHouseColorTheme(
   }
 
   const name = (houseName || '').toLowerCase().trim();
-  const clone = (cloneGroup || '').toLowerCase().trim();
 
   // 1. Pinnacle / AsianConnect
-  if (name.includes('pinnacle') || clone.includes('asianconnect')) {
+  if (name.includes('pinnacle') || name.includes('asianconnect')) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'pinnacle_orange')!.theme;
   }
 
@@ -298,37 +355,32 @@ export function getHouseColorTheme(
   }
 
   // 9. Clones Estrela
-  if (name.includes('estrela') || clone.includes('estrela') || name.includes('betnacional')) {
+  if (name.includes('estrela') || name.includes('betnacional')) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'estrela_gold')!.theme;
   }
 
   // 10. Clones 7k
-  if (name.includes('7k') || clone.includes('7k') || name.includes('jonbet')) {
+  if (name.includes('7k') || name.includes('jonbet')) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === '7k_indigo')!.theme;
   }
 
   // 11. Clones Vbet
-  if (name.includes('vbet') || clone.includes('vbet') || name.includes('bwin')) {
+  if (name.includes('vbet') || name.includes('bwin')) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'vbet_magenta')!.theme;
   }
 
   // 12. Clones Blaze gerais
-  if (name.includes('blaze') || clone.includes('blaze') || name.includes('bet25')) {
+  if (name.includes('blaze') || name.includes('bet25')) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'blaze_red')!.theme;
   }
 
   // 13. KTO
-  if (name.includes('kto') || clone.includes('kto')) {
+  if (name.includes('kto')) {
     return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'blaze_red')!.theme;
   }
 
-  // Fallback determinístico suave baseado nas letras do nome
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash << 5) - hash + name.charCodeAt(i);
-  }
-  const idx = Math.abs(hash) % (HOUSE_COLOR_SUGGESTIONS.length - 1);
-  return HOUSE_COLOR_SUGGESTIONS[idx].theme;
+  // A casa desconhecida não recebe uma identidade de marca por semelhança.
+  return HOUSE_COLOR_SUGGESTIONS.find((s) => s.id === 'neutral_slate')!.theme;
 }
 
 /**
@@ -410,7 +462,7 @@ export function getHouseAccountStatusTheme(status: HouseAccountStatus): {
 }
 
 /**
- * Cores leves para tipos de operação na calculadora de pernas
+ * Cores leves para tipos de operação e suas etapas
  */
 export function getOperationTypeTheme(opType: OperationType): {
   activeClass: string;

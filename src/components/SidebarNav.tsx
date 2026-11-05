@@ -122,6 +122,7 @@ export const SidebarNav: React.FC = () => {
 
   const isOperator = currentUser.role === 'operador';
   const isAdmin = currentUser.role === 'admin';
+  const isOverviewScreen = activeScreen === 'visao_geral';
 
   const openDivergencesCount = divergences.filter((d) => d.status !== 'resolvida').length;
   const transitCount = withdrawals.filter(isWithdrawalInTransit).length;
@@ -276,7 +277,7 @@ export const SidebarNav: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveScreen('visao_geral')}
-            title={`ENIGMA. Grupo · Gestão de Operações (${versionTag}) — “Cadê o dinheiro que estava aqui?”`}
+            title={`Enigma (${versionTag}) — “Cadê o dinheiro que estava aqui?”`}
             className="flex flex-nowrap items-center gap-[6px] sm:gap-[8px] text-left cursor-pointer shrink-0 group"
           >
             <div className={`${isMicroZoom ? 'w-[26px] h-[26px]' : 'w-[30px] h-[30px]'} rounded-[7px] bg-[#18241F] border border-[#263830] group-hover:border-[#0D6E57] flex items-center justify-center shrink-0`}>
@@ -296,7 +297,7 @@ export const SidebarNav: React.FC = () => {
                 </div>
                 {!isShortLabels && (
                   <span className="text-[8px] font-semibold tracking-[0.13em] uppercase text-[#8FA39B] mt-[2px]">
-                    GRUPO · GESTÃO DE OPERAÇÕES
+                    Gestão de operações
                   </span>
                 )}
               </div>
@@ -354,7 +355,7 @@ export const SidebarNav: React.FC = () => {
         {/* Direita: Resumo Global Compacto + Período + Configurações + Perfil (tudo em 1 linha) */}
         <div className="flex flex-nowrap items-center gap-[3px] sm:gap-[6px] shrink-0">
           {/* Pílula Global Banca & Mês — centralizada no topo */}
-          {!isUltraIcon && (
+          {!isUltraIcon && !isOverviewScreen && (
             <button
               type="button"
               onClick={() => setActiveScreen('saldos')}
@@ -516,59 +517,67 @@ export const SidebarNav: React.FC = () => {
           })}
         </div>
 
-        {/* Indicadores Globais Centralizados no Topo (Casas · Em Aberto · Trânsito · Carteiras · Cotação) */}
-        {!isUltraIcon && (
+        {/* Resumo persistente fora da Visão Geral; nela os cards já mostram esses saldos. */}
+        {!isUltraIcon && (!isOverviewScreen || !isShortLabels) && (
           <div className="flex flex-nowrap items-center gap-[8px] sm:gap-[10px] text-[11px] sm:text-[11.5px] text-[#9AB0A6] shrink-0">
-            <span
-              title={`Disponível nas Casas: ${formatBrlEquivalent(
-                globalSummary.availableInHouses
-              )} (${globalSummary.activeAccountsCount} contas ativas)`}
-            >
-              Casas:{' '}
-              <b className="text-[#F7F8F7] tabular-nums">
-                {formatCurrencyBRL(globalSummary.availableInHouses)}
-              </b>
-            </span>
-            {!isCompactRight && (
+            {!isOverviewScreen && (
               <>
-                <span className="text-[#3A4F46]">·</span>
                 <span
-                  title={`Em Apostas Abertas: ${formatBrlEquivalent(
-                    globalSummary.reservedInOpenBets
-                  )} (${globalSummary.openBetsCount} op.)`}
+                  title={`Disponível nas Casas: ${formatBrlEquivalent(
+                    globalSummary.availableInHouses
+                  )} (${globalSummary.activeAccountsCount} contas ativas)`}
                 >
-                  Aberto:{' '}
+                  Casas:{' '}
                   <b className="text-[#F7F8F7] tabular-nums">
-                    {formatCurrencyBRL(globalSummary.reservedInOpenBets)}
+                    {formatCurrencyBRL(globalSummary.availableInHouses)}
                   </b>
                 </span>
-                <span className="text-[#3A4F46]">·</span>
-                <span
-                  title={`Saques em Trânsito: ${formatBrlEquivalent(
-                    globalSummary.inTransitWithdrawals
-                  )}`}
-                >
-                  Trânsito:{' '}
-                  <b className="text-[#FBBF24] tabular-nums">
-                    {formatCurrencyBRL(globalSummary.inTransitWithdrawals)}
-                  </b>
-                </span>
+                {!isCompactRight && (
+                  <>
+                    <span className="text-[#3A4F46]">·</span>
+                    <span
+                      title={`Em Apostas Abertas: ${formatBrlEquivalent(
+                        globalSummary.reservedInOpenBets
+                      )} (${globalSummary.openBetsCount} op.)`}
+                    >
+                      Aberto:{' '}
+                      <b className="text-[#F7F8F7] tabular-nums">
+                        {formatCurrencyBRL(globalSummary.reservedInOpenBets)}
+                      </b>
+                    </span>
+                    <span className="text-[#3A4F46]">·</span>
+                    <span
+                      title={`Saques em Trânsito: ${formatBrlEquivalent(
+                        globalSummary.inTransitWithdrawals
+                      )}`}
+                    >
+                      Trânsito:{' '}
+                      <b className="text-[#FBBF24] tabular-nums">
+                        {formatCurrencyBRL(globalSummary.inTransitWithdrawals)}
+                      </b>
+                    </span>
+                  </>
+                )}
+                {!isShortLabels && (
+                  <>
+                    <span className="text-[#3A4F46]">·</span>
+                    <span
+                      title={`Saldo em Carteiras & Corretoras: ${formatBrlEquivalent(
+                        globalSummary.totalBankBalances
+                      )}`}
+                    >
+                      Carteiras:{' '}
+                      <b className="text-[#34D399] tabular-nums">
+                        {formatCurrencyBRL(globalSummary.totalBankBalances)}
+                      </b>
+                    </span>
+                  </>
+                )}
               </>
             )}
             {!isShortLabels && (
               <>
-                <span className="text-[#3A4F46]">·</span>
-                <span
-                  title={`Saldo em Carteiras & Corretoras: ${formatBrlEquivalent(
-                    globalSummary.totalBankBalances
-                  )}`}
-                >
-                  Carteiras:{' '}
-                  <b className="text-[#34D399] tabular-nums">
-                    {formatCurrencyBRL(globalSummary.totalBankBalances)}
-                  </b>
-                </span>
-                <span className="text-[#3A4F46]">·</span>
+                {!isOverviewScreen && <span className="text-[#3A4F46]">·</span>}
                 <button
                   type="button"
                   onClick={() => setActiveScreen('configuracoes')}

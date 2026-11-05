@@ -1,3 +1,5 @@
+import type { CryptoRouteMetadata } from './cryptoNetworks.ts';
+
 export type UserRole = 'admin' | 'operador' | 'socio';
 
 export type UserAccountStatus = 'ativo' | 'pendente' | 'bloqueado';
@@ -136,7 +138,8 @@ export interface PartnershipAssignmentEvent {
     | 'devolvida_estoque'
     | 'transferida'
     | 'arquivada'
-    | 'ressarcimento_quitado';
+    | 'ressarcimento_quitado'
+    | 'destino_financeiro_alterado';
   fromOperatorId: string | null;
   toOperatorId: string | null;
   authorName: string;
@@ -168,6 +171,7 @@ export interface Partnership {
   reimbursementAmount: number;
   reimbursementSettled: boolean;
   pixWithdrawals: string;
+  withdrawalNetwork?: string;
   pixPayments: string;
   notes: string;
   assignmentHistory: PartnershipAssignmentEvent[];
@@ -261,6 +265,8 @@ export type EntryReconciliationStatus =
   | 'conciliada';
 
 export interface BetEntry {
+  /** Optional next-entry budget in the existing USDT base; not an invested amount. */
+  plannedCapital?: number | null;
   id: string;
   mode: 'rapido' | 'detalhado';
   operationType: OperationType;
@@ -295,6 +301,7 @@ export type WithdrawalIssueType =
   | 'em_investigacao';
 
 export interface Withdrawal {
+  cryptoRoute?: CryptoRouteMetadata;
   id: string;
   houseAccountId: string;
   partnershipId: string;
@@ -316,6 +323,7 @@ export interface Withdrawal {
 }
 
 export interface DepositTransfer {
+  cryptoRoute?: CryptoRouteMetadata;
   id: string;
   type: 'deposito_casa' | 'transferencia_bancos';
   originBankId: string;

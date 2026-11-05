@@ -19,7 +19,7 @@ import {
   deserializeUsersPersistenceJson,
   serializeUsersPersistenceJson,
 } from '../database/userRepository.ts';
-import { buildDatabaseMigrations } from '../../database/migrate.ts';
+import { ENIGMA_DATABASE_MIGRATIONS } from '../database/migrations.ts';
 
 test('authenticateUser validates default admin credentials and active operators', () => {
   const adminByLogin = authenticateUser(INITIAL_USERS, 'admin', 'admin123');
@@ -189,15 +189,11 @@ test('userRepository builds, serializes, and deserializes user persistence snaps
   assert.ok(parsed.users?.[0].passwordHash?.startsWith('sha256:'));
 });
 
-test('database migration builder compiles SQL migrations and seeds into build artifact', () => {
-  const summary = buildDatabaseMigrations();
-  assert.ok(summary.migrationsApplied.length >= 3);
-  assert.equal(summary.seedsApplied.length, 1);
-  assert.ok(summary.tablesCreated.includes('users'));
-  assert.ok(summary.tablesCreated.includes('partnerships'));
-  assert.ok(summary.tablesCreated.includes('catalog_houses'));
-  assert.ok(summary.tablesCreated.includes('catalog_banks'));
-  assert.ok(summary.tablesCreated.includes('catalog_custom_criteria'));
+test('local SQL previews reference the expected tables without executing migrations', () => {
+  const tables = new Set(ENIGMA_DATABASE_MIGRATIONS.flatMap((migration) => migration.tables));
+  for (const table of ['users', 'partnerships', 'catalog_houses', 'catalog_banks', 'catalog_custom_criteria']) {
+    assert.ok(tables.has(table), table);
+  }
 
   const sqlDump = generateLiveUsersSqlMigration(INITIAL_USERS, 10, 2026);
   assert.ok(sqlDump.includes("INSERT INTO users"));

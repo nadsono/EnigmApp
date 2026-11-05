@@ -16,6 +16,7 @@ import {
   SocialProofShowcase,
 } from '../components/SocialProofShowcase.tsx';
 import {
+  canAccountStartNewOperation,
   evaluateBetEntry,
   formatBrlEquivalent,
   formatCurrencyBRL,
@@ -30,6 +31,13 @@ import {
   getOperationTypeTheme,
 } from '../domain/uiTheme.ts';
 import type { BetLeg, HouseAccount, LegResult, OperationType } from '../domain/types.ts';
+import {
+  allocateOperationCapital,
+  canApplyAutomaticCapital,
+  suggestOperationCapital,
+  type CapitalSuggestion,
+} from '../domain/operationCapital.ts';
+import { useOperationPreferences } from '../hooks/useOperationPreferences.ts';
 
 function normalizeHouseKey(name: string): string {
   return formatShortHouseName(name)
@@ -68,9 +76,8 @@ function findDefaultAccountForHouse(
 ): HouseAccount | null {
   const matching = getMatchingAccountsForHouse(houseName, accounts);
   return (
-    matching.find((a) => a.status !== 'limitada' && a.availableBalance > 0) ||
-    matching.find((a) => a.status !== 'limitada') ||
-    matching[0] ||
+    matching.find((a) => canAccountStartNewOperation(a).allowed && a.availableBalance > 0) ||
+    matching.find((a) => canAccountStartNewOperation(a).allowed) ||
     null
   );
 }
@@ -136,6 +143,7 @@ interface DraftHouseLeg {
 export const EntradasScreen: React.FC = () => {
   const {
     entries,
+    settledEntries,
     houseAccounts,
     partnerships,
     availableHouses,
@@ -150,8 +158,16 @@ export const EntradasScreen: React.FC = () => {
     clearNavFocus,
     setActiveScreen,
     notify,
+    currentUser,
+    usdtBrlRate,
+    eurUsdtRate,
   } = useEnigma();
 
+  const { preferences: capitalPreferences, setPreferences: setCapitalPreferences, storageError } = useOperationPreferences(currentUser.id);
+  const [manualCapitalOverride, setManualCapitalOverride] = useState(false);
+  const [showCapitalPreferences, setShowCapitalPreferences] = useState(false);
+  const [shortcutDraft, setShortcutDraft] = useState('');
+  const [maximumDraft, setMaximumDraft] = useState('');
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [operationType, setOperationType] = useState<OperationType>('ao_vivo');
 
@@ -166,8 +182,11 @@ export const EntradasScreen: React.FC = () => {
     [houseAccounts, activePartnershipIds]
   );
 
-  const defaultHouse1 = availableHouses[0] || 'Pinnacle';
-  const defaultHouse2 = availableHouses[1] || 'Cloudbet';
+  const readyHouses = availableHouses.filter((house) => operationalHouseAccounts.some(
+    (account) => doesAccountMatchHouse(account.houseName, house) && canAccountStartNewOperation(account).allowed
+  ));
+  const defaultHouse1 = readyHouses[0] || availableHouses[0] || 'Pinnacle';
+  const defaultHouse2 = readyHouses[1] || availableHouses[1] || 'Cloudbet';
   const [selectedHouses, setSelectedHouses] = useState<string[]>([defaultHouse1, defaultHouse2]);
 
   const [houseLegs, setHouseLegs] = useState<DraftHouseLeg[]>(() => {
@@ -177,21 +196,21 @@ export const EntradasScreen: React.FC = () => {
       {
         id: 'leg_init_1',
         houseName: defaultHouse1,
-        accountId: acc1?.id || 'acc_pin_joao',
-        result: 'green',
-        stakeStr: '2.600,00',
-        oddStr: '1,98',
-        returnStr: '5.148,00',
+        accountId: acc1?.id || '',
+        result: 'pendente',
+        stakeStr: '',
+        oddStr: '',
+        returnStr: '',
         selection: '',
       },
       {
         id: 'leg_init_2',
         houseName: defaultHouse2,
-        accountId: acc2?.id || 'acc_bet365_joao',
-        result: 'red',
-        stakeStr: '2.400,00',
-        oddStr: '2,05',
-        returnStr: '0,00',
+        accountId: acc2?.id || '',
+        result: 'pendente',
+        stakeStr: '',
+        oddStr: '',
+        returnStr: '',
         selection: '',
       },
     ];
@@ -232,8 +251,8 @@ export const EntradasScreen: React.FC = () => {
     });
   }, [availableHouses, operationalHouseAccounts, editingEntryId]);
 
-  const [totalCapitalStr, setTotalCapitalStr] = useState<string>('5.000,00');
-  const [dateTimeStr, setDateTimeStr] = useState<string>('11/10/2026 11:20');
+  const [totalCapitalStr, setTotalCapitalStr] = useState<string>('');
+  const [dateTimeStr, setDateTimeStr] = useState<string>(() => new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ''));
   const [eventStr, setEventStr] = useState<string>('');
   const [marketStr, setMarketStr] = useState<string>('');
   const [alreadyConcludedCheck, setAlreadyConcludedCheck] = useState<boolean>(false);
@@ -244,7 +263,45 @@ export const EntradasScreen: React.FC = () => {
   const [historySearch, setHistorySearch] = useState<string>('');
   const [selectedCloneFilter, setSelectedCloneFilter] = useState<string>('Todos');
 
+  // Only account/odd changes affect the proposal. Typing a stake opts out of automatic updates.
+  const capitalLegKey = JSON.stringify(houseLegs.map((leg) => ({ id: leg.id, accountId: leg.accountId, odd: parseCurrencyInput(leg.oddStr) })));
+  const capitalInput = useMemo(() => ({
+    accounts: operationalHouseAccounts.map((account) => ({ ...account, canStartNewOperation: canAccountStartNewOperation(account).allowed })),
+    legs: JSON.parse(capitalLegKey) as Array<{ id: string; accountId: string; odd: number | null }>,
+    rates: { usdtBrl: usdtBrlRate, eurUsdt: eurUsdtRate },
+    maximumUsdt: capitalPreferences.maximumUsdt,
+  }), [capitalLegKey, operationalHouseAccounts, usdtBrlRate, eurUsdtRate, capitalPreferences.maximumUsdt]);
+  const capitalProposal = useMemo(() => ({ ...suggestOperationCapital(capitalInput), calculatedAt: new Date() }), [capitalInput]);
+  const hasRecordedResult = houseLegs.some((leg) => leg.result !== 'pendente');
+  const automaticCapitalEnabled = canApplyAutomaticCapital({
+    mode: capitalPreferences.mode, editingEntryId, manualOverride: manualCapitalOverride, hasRecordedResult,
+  });
+
+  const applyCapitalAllocation = (proposal: CapitalSuggestion) => {
+    if (proposal.totalUsdt === null) return;
+    const amount = proposal.totalUsdt.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    setTotalCapitalStr(amount);
+    setHouseLegs((prev) => prev.map((leg) => {
+      const allocation = proposal.allocations.find((item) => item.id === leg.id);
+      if (!allocation) return leg;
+      const stakeStr = allocation.stakeUsdt.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      if (leg.stakeStr === stakeStr) return leg;
+      return { ...leg, stakeStr };
+    }));
+  };
+
+  useEffect(() => {
+    if (!automaticCapitalEnabled) return;
+    if (capitalProposal.totalUsdt === null) {
+      setTotalCapitalStr('');
+      setHouseLegs((prev) => prev.map((leg) => leg.stakeStr ? { ...leg, stakeStr: '' } : leg));
+      return;
+    }
+    applyCapitalAllocation(capitalProposal);
+  }, [automaticCapitalEnabled, capitalProposal]);
+
   const handleLoadSocialProofCase = (caseItem: SocialProofCase) => {
+    setManualCapitalOverride(true);
     setEditingEntryId(null);
     setEventStr(caseItem.event);
     setMarketStr(caseItem.market);
@@ -320,7 +377,7 @@ export const EntradasScreen: React.FC = () => {
 
     notify(
       'success',
-      `Parâmetros da operação "${caseItem.title}" carregados na calculadora!`
+      `Parâmetros da operação "${caseItem.title}" preenchidos no formulário.`
     );
   };
 
@@ -350,10 +407,11 @@ export const EntradasScreen: React.FC = () => {
   }, [availableHouses, selectedCloneFilter, houseCatalog, operationalHouseAccounts]);
 
   const loadEntryForEditing = (entryId: string) => {
-    const target = entries.find((e) => e.id === entryId);
+    const target = entries.find((e) => e.id === entryId) || settledEntries.find((e) => e.id === entryId);
     if (!target) return;
 
     setEditingEntryId(target.id);
+    setManualCapitalOverride(true);
     setOperationType(target.operationType);
     const housesList =
       target.houses.length > 0
@@ -361,8 +419,8 @@ export const EntradasScreen: React.FC = () => {
         : [defaultHouse1];
     setSelectedHouses(housesList);
     setTotalCapitalStr(
-      target.totalInvestedCapital !== null
-        ? target.totalInvestedCapital.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+      (target.plannedCapital ?? target.totalInvestedCapital) !== null
+        ? (target.plannedCapital ?? target.totalInvestedCapital)!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
         : ''
     );
     setDateTimeStr(target.createdAt);
@@ -449,10 +507,10 @@ export const EntradasScreen: React.FC = () => {
         id: `leg_${Date.now()}_${houseLegs.length}`,
         houseName: house,
         accountId: matchingAcc?.id || '',
-        result: houseLegs.some((l) => l.result === 'green') ? 'red' : 'green',
+        result: 'pendente',
         stakeStr: '',
         oddStr: '2,00',
-        returnStr: houseLegs.some((l) => l.result === 'green') ? '0,00' : '',
+        returnStr: '',
         selection: '',
       };
       const next = [...houseLegs, nextLeg];
@@ -495,6 +553,7 @@ export const EntradasScreen: React.FC = () => {
   };
 
   const handleUpdateLeg = (index: number, patch: Partial<DraftHouseLeg>) => {
+    if (patch.stakeStr !== undefined || patch.returnStr !== undefined) setManualCapitalOverride(true);
     setHouseLegs((prev) => {
       const next = prev.map((leg, i) => {
         if (i !== index) return leg;
@@ -507,6 +566,8 @@ export const EntradasScreen: React.FC = () => {
 
         if (patch.result === 'red') {
           updated.returnStr = '0,00';
+        } else if (patch.result === 'pendente') {
+          updated.returnStr = '';
         } else if (patch.result === 'void') {
           updated.returnStr = updated.stakeStr;
         } else if (
@@ -524,46 +585,14 @@ export const EntradasScreen: React.FC = () => {
         return updated;
       });
 
-      if (index === 0 && patch.stakeStr !== undefined && next.length === 2) {
-        const total = parseCurrencyInput(totalCapitalStr);
-        const firstStake = parseCurrencyInput(patch.stakeStr);
-        if (total !== null && firstStake !== null && total >= firstStake) {
-          const rem = roundCurrency(total - firstStake);
-          const secondOdd = parseCurrencyInput(next[1].oddStr);
-          next[1] = {
-            ...next[1],
-            stakeStr: rem.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-            returnStr:
-              next[1].result === 'green' && secondOdd
-                ? roundCurrency(rem * secondOdd).toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                  })
-                : next[1].returnStr,
-          };
-        }
-      }
-
       setSelectedHouses(next.map((l) => l.houseName));
       return next;
     });
   };
 
   const handleTotalCapitalChange = (val: string) => {
+    setManualCapitalOverride(true);
     setTotalCapitalStr(val);
-    const total = parseCurrencyInput(val);
-    if (total !== null && houseLegs.length === 2) {
-      const firstStake = parseCurrencyInput(houseLegs[0].stakeStr);
-      if (firstStake !== null && total >= firstStake) {
-        const rem = roundCurrency(total - firstStake);
-        setHouseLegs((prev) => [
-          prev[0],
-          {
-            ...prev[1],
-            stakeStr: rem.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-          },
-        ]);
-      }
-    }
   };
 
   const surebetMetrics = useMemo(() => {
@@ -574,8 +603,7 @@ export const EntradasScreen: React.FC = () => {
     const roiPct = roundCurrency((1 / invSum - 1) * 100);
     const totalCap =
       parseCurrencyInput(totalCapitalStr) ||
-      houseLegs.reduce((s, l) => s + (parseCurrencyInput(l.stakeStr) || 0), 0) ||
-      1000;
+      houseLegs.reduce((s, l) => s + (parseCurrencyInput(l.stakeStr) || 0), 0);
     const guaranteedReturn = roundCurrency(totalCap / invSum);
     const guaranteedProfit = roundCurrency(guaranteedReturn - totalCap);
     return {
@@ -589,57 +617,22 @@ export const EntradasScreen: React.FC = () => {
   }, [houseLegs, totalCapitalStr]);
 
   const handleAutoDistributeSurebet = () => {
-    const cap =
-      parseCurrencyInput(totalCapitalStr) ||
-      houseLegs.reduce((s, l) => s + (parseCurrencyInput(l.stakeStr) || 0), 0) ||
-      2000;
-    setTotalCapitalStr(cap.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-
-    const odds = houseLegs.map((l) => parseCurrencyInput(l.oddStr) || 0);
-    const allValid = odds.every((o) => o > 1);
-
-    setHouseLegs((prev) => {
-      if (!allValid) {
-        const equalStake = roundCurrency(cap / prev.length);
-        return prev.map((leg) => {
-          const oddNum = parseCurrencyInput(leg.oddStr) || 0;
-          return {
-            ...leg,
-            stakeStr: equalStake.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-            returnStr:
-              leg.result === 'green' && oddNum > 1
-                ? roundCurrency(equalStake * oddNum).toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                  })
-                : leg.result === 'red'
-                ? '0,00'
-                : leg.returnStr,
-          };
-        });
-      }
-
-      const invSum = odds.reduce((acc, o) => acc + 1 / o, 0);
-      let runningSum = 0;
-      return prev.map((leg, i) => {
-        const oddNum = odds[i];
-        const stake =
-          i === prev.length - 1
-            ? roundCurrency(cap - runningSum)
-            : roundCurrency((cap * (1 / oddNum)) / invSum);
-        runningSum = roundCurrency(runningSum + stake);
-        const calcRet = roundCurrency(stake * oddNum);
-        return {
-          ...leg,
-          stakeStr: stake.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-          returnStr:
-            leg.result === 'green'
-              ? calcRet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-              : leg.result === 'red'
-              ? '0,00'
-              : leg.returnStr,
-        };
-      });
-    });
+    if (editingEntryId || hasRecordedResult) {
+      notify('warning', 'A equalização está disponível em novas operações pendentes. Os valores registrados foram preservados.');
+      return;
+    }
+    const cap = parseCurrencyInput(totalCapitalStr);
+    if (cap === null || cap <= 0) {
+      notify('warning', 'Informe o capital da próxima entrada ou aplique a sugestão.');
+      return;
+    }
+    const allocation = allocateOperationCapital({ ...capitalInput, totalUsdt: cap });
+    if (allocation.totalUsdt === null) {
+      notify('warning', allocation.explanation);
+      return;
+    }
+    setManualCapitalOverride(true);
+    applyCapitalAllocation(allocation);
   };
 
   const draftEntry = useMemo(() => {
@@ -687,7 +680,10 @@ export const EntradasScreen: React.FC = () => {
       concludedAt: null,
       operatorId: 'op_a',
       origin: 'Manual' as const,
-      totalInvestedCapital: cap,
+      plannedCapital: cap,
+      totalInvestedCapital: mappedLegs.some((leg) => leg.stake !== null && leg.stake > 0)
+        ? roundCurrency(mappedLegs.reduce((sum, leg) => sum + Math.max(0, leg.stake || 0), 0))
+        : null,
       resultStatus: 'aguardando_detalhamento' as const,
       reconciliationStatus: 'pendente_apuracao' as const,
       simpleResultHint: greenLeg?.result || null,
@@ -726,10 +722,16 @@ export const EntradasScreen: React.FC = () => {
     setEventStr('');
     setMarketStr('');
     setAlreadyConcludedCheck(false);
+    setTotalCapitalStr('');
+    setManualCapitalOverride(false);
+    setDateTimeStr(new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ''));
     setHouseLegs((prev) =>
-      prev.map((leg, idx) => ({
+      prev.map((leg) => ({
         ...leg,
-        returnStr: idx === 0 ? '' : '0,00',
+        result: 'pendente',
+        stakeStr: '',
+        oddStr: '',
+        returnStr: '',
         selection: '',
       }))
     );
@@ -737,6 +739,11 @@ export const EntradasScreen: React.FC = () => {
 
   const handleLaunchEntry = (forceConclude?: boolean) => {
     const wantConclude = Boolean(forceConclude ?? alreadyConcludedCheck);
+    const budget = parseCurrencyInput(totalCapitalStr);
+    if (!editingEntryId && budget !== null && budget > 0 && sumTypedStakes > budget + 0.005) {
+      notify('warning', 'As stakes superam o orçamento da próxima entrada. Equalize os valores ou ajuste o orçamento antes de salvar.');
+      return;
+    }
 
     // Validação estrita: não permite lançar entradas em contas de parcerias do estoque ou inativas
     if (!editingEntryId) {
@@ -764,6 +771,7 @@ export const EntradasScreen: React.FC = () => {
         concludedAt: wantConclude ? dateTimeStr : null,
         origin: 'Manual',
         totalInvestedCapital: draftEntry.totalInvestedCapital,
+        plannedCapital: draftEntry.plannedCapital,
         resultStatus: wantConclude ? 'concluida' : 'aguardando_detalhamento',
         reconciliationStatus: wantConclude ? 'conciliada' : 'pendente_apuracao',
         simpleResultHint: draftEntry.simpleResultHint,
@@ -776,6 +784,7 @@ export const EntradasScreen: React.FC = () => {
     if (ok && wantConclude && draftEval.canConclude) {
       setEditingEntryId(null);
     }
+    if (ok) setManualCapitalOverride(true);
   };
 
   const filteredEntriesList = useMemo(() => {
@@ -809,15 +818,58 @@ export const EntradasScreen: React.FC = () => {
   }, [entries]);
 
   return (
-    <div className="flex flex-col gap-[16px]">
+    <div className="flex min-w-0 flex-col gap-[16px]">
+      <style>{`
+        .entry-editor { container: enigma-entry / inline-size; }
+        .entry-legs table { table-layout: fixed; }
+        .entry-legs th:nth-child(1) { width: 4%; }
+        .entry-legs th:nth-child(2) { width: 14%; }
+        .entry-legs th:nth-child(3) { width: 25%; }
+        .entry-legs th:nth-child(4) { width: 8%; }
+        .entry-legs th:nth-child(5) { width: 12%; }
+        .entry-legs th:nth-child(6) { width: 17%; }
+        .entry-legs th:nth-child(7) { width: 16%; }
+        .entry-legs th:nth-child(8) { width: 4%; }
+        .entry-legs input, .entry-legs select { min-width: 0; max-width: 100%; }
+        .entry-editor button:focus-visible, .entry-editor input:focus-visible, .entry-editor select:focus-visible, .entry-editor summary:focus-visible { outline: 2px solid #0F6B5C; outline-offset: 2px; }
+        .entry-result-buttons { display: none; }
+        .entry-legs td::before { display: none; }
+        @container enigma-entry (min-width: 1450px) {
+          .entry-result-select { display: none; }
+          .entry-result-buttons { display: flex; flex-wrap: wrap; }
+        }
+        @container enigma-entry (max-width: 1050px) {
+          .entry-legs table, .entry-legs tbody { display: block; }
+          .entry-legs thead { display: none; }
+          .entry-legs tr { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 10px; gap: 8px; }
+          .entry-legs td { display: block; min-width: 0; padding: 0; grid-column: span 3; }
+          .entry-legs td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; color: #64748B; margin-bottom: 4px; }
+          .entry-legs td:nth-child(1) { grid-column: span 1; align-self: center; }
+          .entry-legs td:nth-child(2) { grid-column: span 4; }
+          .entry-legs td:nth-child(3) { grid-column: span 6; }
+          .entry-legs td:nth-child(8) { grid-column: 12; grid-row: 1; align-self: center; }
+          .entry-legs td:nth-child(1)::before, .entry-legs td:nth-child(8)::before { display: none; }
+        }
+        @container enigma-entry (max-width: 580px) {
+          .entry-legs tr { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+          .entry-legs td { grid-column: span 1; }
+          .entry-legs td:nth-child(1) { grid-column: 1; grid-row: 1; }
+          .entry-legs td:nth-child(2), .entry-legs td:nth-child(3) { grid-column: span 2; }
+          .entry-legs td:nth-child(8) { grid-column: 2; grid-row: 1; justify-self: end; }
+          .entry-main-actions { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .entry-main-actions > button:last-child { grid-column: span 2; justify-content: center; }
+          .entry-main-actions > label { grid-column: span 2; }
+        }
+      `}</style>
       {/* Barra Superior de Métricas Rápidas + Importação GreenSureBet */}
       <div className="flex flex-wrap justify-between items-center gap-[10px]">
-        <div className="flex items-center gap-[10px]">
+        <div className="flex min-w-0 flex-wrap items-center gap-[10px]">
           <h1 className="m-0 text-[22px] font-bold text-[#0F172A] tracking-[-0.02em]">
-            Mesa de Entradas
+            Entradas
           </h1>
           {surebetMetrics && (
             <span
+              title="Estimativa baseada nas odds e nos valores atuais; o resultado real depende da liquidação de cada casa."
               className={`px-[10px] py-[4px] rounded-full text-[11px] font-bold tabular-nums border inline-flex items-center gap-[5px] ${
                 surebetMetrics.isSurebet
                   ? 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]'
@@ -827,18 +879,18 @@ export const EntradasScreen: React.FC = () => {
               <Scale className="w-[12px] h-[12px]" strokeWidth={1.75} />
               <span>
                 {surebetMetrics.isSurebet
-                  ? `Surebet +${surebetMetrics.roiPct.toFixed(2)}% (Garantido: ${formatCurrencyBRL(
+                  ? `Margem calculada +${surebetMetrics.roiPct.toFixed(2)}% (Resultado teórico: ${formatCurrencyBRL(
                       surebetMetrics.guaranteedProfit,
                       true
                     )})`
-                  : `Margem Odds: ${surebetMetrics.roiPct.toFixed(2)}%`}
+                  : `Margem das odds: ${surebetMetrics.roiPct.toFixed(2)}%`}
               </span>
             </span>
           )}
         </div>
 
         <div className="flex flex-wrap gap-[8px] items-center">
-          <div className="flex items-center gap-[12px] px-[14px] py-[7px] rounded-[8px] bg-white border border-[#E2E8F0] text-[12px]">
+          <div className="flex min-w-0 flex-wrap items-center gap-[12px] px-[14px] py-[7px] rounded-[8px] bg-white border border-[#E2E8F0] text-[12px]">
             <button
               type="button"
               onClick={() => setListFilter('concluidas')}
@@ -859,7 +911,7 @@ export const EntradasScreen: React.FC = () => {
               title={`Equivalente: ${formatBrlEquivalent(totalConcludedPl)}`}
               className="text-[#475569]"
             >
-              P/L Período:{' '}
+              Resultado do período:{' '}
               <b className="tabular-nums text-[#15803D]">
                 {formatCurrencyBRL(totalConcludedPl, true)}
               </b>{' '}
@@ -869,7 +921,7 @@ export const EntradasScreen: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-[8px]">
+          <div className="flex flex-wrap items-center gap-[8px]">
             <button
               type="button"
               onClick={() => setShowSocialProof((v) => !v)}
@@ -880,7 +932,7 @@ export const EntradasScreen: React.FC = () => {
               }`}
             >
               <ShieldCheck className="w-[14px] h-[14px]" strokeWidth={2} />
-              <span>{showSocialProof ? 'Ocultar Prova Social' : 'Prova Social & Bilhetes Reais'}</span>
+              <span>{showSocialProof ? 'Ocultar exemplos' : 'Exemplos de operações'}</span>
             </button>
 
             <button
@@ -916,7 +968,7 @@ export const EntradasScreen: React.FC = () => {
       )}
 
       {/* Workstation / Planilha Interativa de Entradas */}
-      <section className="bg-white border border-[#CBD5E1] rounded-[12px] overflow-hidden flex flex-col">
+      <section className="entry-editor min-w-0 bg-white border border-[#CBD5E1] rounded-[12px] overflow-hidden flex flex-col">
         {/* Faixa de Cabeçalho Escura da Operação */}
         <div className="bg-[#0F172A] text-white px-[18px] py-[11px] flex flex-wrap justify-between items-center gap-[12px]">
           <div className="flex flex-wrap items-center gap-[8px]">
@@ -927,7 +979,7 @@ export const EntradasScreen: React.FC = () => {
                 }`}
               />
               <h2 className="m-0 text-[14.5px] font-bold text-white">
-                {editingEntryId ? `Editando #${editingEntryId}` : 'Calculadora de Pernas'}
+                {editingEntryId ? `Editando #${editingEntryId}` : 'Registrar operação'}
               </h2>
             </div>
 
@@ -969,19 +1021,20 @@ export const EntradasScreen: React.FC = () => {
 
           {/* Campos Gerais: Capital Total + Atalhos + Evento + Mercado + Data */}
           <div className="flex flex-wrap items-center gap-[8px]">
-            <div className="flex items-center bg-[#1E293B] border border-[#334155] rounded-[8px] px-[8px] py-[3px] gap-[6px]">
+            <div className="flex max-w-full flex-wrap items-center bg-[#1E293B] border border-[#334155] rounded-[8px] px-[8px] py-[3px] gap-[6px]">
               <label htmlFor="q-cap" className="text-[11px] font-bold text-[#94A3B8]">
-                Capital:
+                Próxima entrada (USDT):
               </label>
               <input
                 id="q-cap"
                 value={totalCapitalStr}
                 onChange={(e) => handleTotalCapitalChange(e.target.value)}
-                placeholder="5.000,00"
+                inputMode="decimal"
+                placeholder="0,00"
                 className="w-[92px] py-[2px] bg-transparent border-0 text-[13px] font-bold text-right tabular-nums text-white focus:ring-0"
               />
-              <div className="flex items-center gap-[2px] border-l border-[#334155] pl-[6px]">
-                {[1000, 2500, 5000].map((presetCap) => (
+              <div className="flex flex-wrap items-center gap-[2px] border-l border-[#334155] pl-[6px]">
+                {capitalPreferences.shortcuts.map((presetCap) => (
                   <button
                     key={presetCap}
                     type="button"
@@ -992,7 +1045,7 @@ export const EntradasScreen: React.FC = () => {
                     }
                     className="px-[6px] py-[2px] rounded-full text-[10px] font-bold text-[#4ADE80] hover:bg-[#334155] cursor-pointer tabular-nums"
                   >
-                    {presetCap >= 1000 ? `${presetCap / 1000}k` : presetCap}
+                    {presetCap.toLocaleString('pt-BR')}
                   </button>
                 ))}
               </div>
@@ -1026,6 +1079,75 @@ export const EntradasScreen: React.FC = () => {
           </div>
         </div>
 
+        <div className="px-[18px] py-[12px] border-b border-[#E2E8F0] bg-[#F8FAFC] flex flex-col gap-[8px]">
+          <div className="flex flex-wrap items-center gap-[10px]">
+            <label htmlFor="capital-mode" className="text-[12px] font-semibold text-[#475569]">Capital da próxima entrada</label>
+            <select id="capital-mode" value={capitalPreferences.mode}
+              onChange={(event) => {
+                setCapitalPreferences({ mode: event.target.value as 'manual' | 'automatic' });
+                if (!editingEntryId && !hasRecordedResult) setManualCapitalOverride(false);
+              }}
+              className="px-[9px] py-[6px] border border-[#CBD5E1] rounded-[8px] bg-white text-[12px] text-[#0F172A]">
+              <option value="manual">Manual</option>
+              <option value="automatic">Automático no rascunho</option>
+            </select>
+            <span className="text-[12px] font-semibold text-[#0F172A] tabular-nums" aria-live="polite">
+              {capitalProposal.totalUsdt === null ? 'Sugestão indisponível' : `Sugestão: ${capitalProposal.totalUsdt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} USDT`}
+            </span>
+            <button type="button" disabled={capitalProposal.totalUsdt === null || Boolean(editingEntryId) || hasRecordedResult}
+              onClick={() => {
+                setManualCapitalOverride(capitalPreferences.mode !== 'automatic');
+                applyCapitalAllocation(capitalProposal);
+              }}
+              className="px-[10px] py-[6px] border border-[#0F6B5C] rounded-[8px] bg-white text-[12px] font-semibold text-[#0F6B5C] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+              {capitalPreferences.mode === 'automatic' && manualCapitalOverride ? 'Retomar automático' : 'Usar sugestão'}
+            </button>
+            <button type="button" aria-expanded={showCapitalPreferences} aria-controls="capital-preferences"
+              onClick={() => {
+                setMaximumDraft(capitalPreferences.maximumUsdt?.toLocaleString('pt-BR', { useGrouping: false, maximumFractionDigits: 2 }) || '');
+                setShortcutDraft(capitalPreferences.shortcuts.map((amount) => amount.toLocaleString('pt-BR', { useGrouping: false, maximumFractionDigits: 2 })).join('; '));
+                setShowCapitalPreferences((open) => !open);
+              }}
+              className="px-[10px] py-[6px] text-[12px] font-semibold text-[#475569] underline cursor-pointer">Preferências de capital</button>
+          </div>
+          <p className="m-0 text-[11px] leading-relaxed text-[#64748B]">
+            {editingEntryId ? 'Edição de registro: capital e stakes preservados. ' : hasRecordedResult ? 'Resultado informado: capital e stakes preservados. ' : manualCapitalOverride ? 'Valor manual preservado. ' : automaticCapitalEnabled ? 'Atualização automática ativa neste rascunho. ' : ''}
+            {capitalProposal.explanation} Calculado às {capitalProposal.calculatedAt.toLocaleTimeString('pt-BR')}. Saldos registrados localmente; confirme a disponibilidade na casa.
+          </p>
+          <details className="text-[11px] text-[#64748B]">
+            <summary className="cursor-pointer">Contas e conversões usadas</summary>
+            <p className="my-[5px]">Base do registro: USDT. Taxas de referência do contexto: 1 USDT = {usdtBrlRate.toLocaleString('pt-BR')} BRL; 1 EUR = {eurUsdtRate.toLocaleString('pt-BR')} USDT. Equivalências informativas; a sugestão não confirma execução nas casas.</p>
+            <p className="my-[5px]">Saldo disponível das contas únicas selecionadas: {capitalProposal.selectedAvailableUsdt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} USDT. {capitalPreferences.maximumUsdt !== null ? `Limite pessoal: ${capitalPreferences.maximumUsdt.toLocaleString('pt-BR')} USDT.` : 'Sem limite pessoal definido.'}</p>
+            {capitalProposal.allocations.map((allocation, index) => (
+              <p key={allocation.id} className="my-[3px]">{index + 1}ª perna: {allocation.stakeUsdt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} USDT{allocation.nativeCurrency !== 'USDT' ? ` ≈ ${allocation.nativeEquivalent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ${allocation.nativeCurrency}` : ''}.</p>
+            ))}
+          </details>
+          {showCapitalPreferences && (
+            <div id="capital-preferences" className="flex flex-wrap items-end gap-[10px] pt-[6px]">
+              <label className="flex flex-col gap-[4px] text-[11px] font-semibold text-[#475569]">
+                Limite pessoal por entrada (USDT, opcional)
+                <input value={maximumDraft} onChange={(event) => setMaximumDraft(event.target.value)} inputMode="decimal" placeholder="Sem limite" className="w-full max-w-[250px] px-[9px] py-[6px] rounded-[8px] border border-[#CBD5E1] bg-white text-[12px] text-[#0F172A]" />
+              </label>
+              <label className="flex flex-col gap-[4px] text-[11px] font-semibold text-[#475569]">
+                Atalhos em USDT (até 6, separados por ;)
+                <input value={shortcutDraft} onChange={(event) => setShortcutDraft(event.target.value)} placeholder="Ex.: 100; 350; 800" className="w-full max-w-[300px] px-[9px] py-[6px] rounded-[8px] border border-[#CBD5E1] bg-white text-[12px] text-[#0F172A]" />
+              </label>
+              <button type="button" onClick={() => {
+                const maximum = maximumDraft.trim() ? parseCurrencyInput(maximumDraft) : null;
+                const shortcuts = shortcutDraft.trim() ? shortcutDraft.split(';').map((amount) => parseCurrencyInput(amount)) : [];
+                if ((maximumDraft.trim() && (maximum === null || maximum <= 0)) || shortcuts.length > 6 || shortcuts.some((amount) => amount === null || amount <= 0)) {
+                  notify('warning', 'Use valores positivos. Separe até seis atalhos com ponto e vírgula.');
+                  return;
+                }
+                setCapitalPreferences({ maximumUsdt: maximum, shortcuts: shortcuts as number[] });
+                setShowCapitalPreferences(false);
+              }} className="px-[12px] py-[7px] rounded-[8px] bg-[#0F6B5C] text-white text-[12px] font-semibold cursor-pointer">Salvar preferências</button>
+              <span className="text-[11px] text-[#64748B]">Preferências pessoais, salvas neste navegador.</span>
+            </div>
+          )}
+          {storageError && <p role="status" className="m-0 text-[11px] text-[#B45309]">A preferência vale nesta sessão, mas o navegador não permitiu salvá-la.</p>}
+        </div>
+
         {/* Barra de Casas Rápidas com Divisão por Clones e Cores Leves das Casas */}
         <div className="px-[18px] py-[9px] bg-[#F1F5F9] border-b border-[#CBD5E1] flex flex-col gap-[8px]">
           {/* Linha 1: Divisão por Clones / Provedores */}
@@ -1056,15 +1178,6 @@ export const EntradasScreen: React.FC = () => {
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={handleAutoDistributeSurebet}
-              title="Calcula e preenche automaticamente as stakes ideais de cada perna pelas Odds informadas"
-              className="px-[11px] py-[4.5px] rounded-[7px] bg-[#0F6B5C] hover:bg-[#0B4F44] text-white text-[11px] font-bold cursor-pointer flex items-center gap-[5px] shrink-0"
-            >
-              <Scale className="w-[13px] h-[13px]" strokeWidth={1.85} />
-              <span>Equalizar Stakes (Surebet)</span>
-            </button>
           </div>
 
           {/* Casas: faixa única com identidade visual e rolagem horizontal */}
@@ -1076,6 +1189,7 @@ export const EntradasScreen: React.FC = () => {
               role="region"
               aria-label="Filtro rápido de casas"
               tabIndex={0}
+              style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}
               onWheel={(event) => {
                 const horizontalDelta =
                   Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
@@ -1105,8 +1219,6 @@ export const EntradasScreen: React.FC = () => {
                   doesAccountMatchHouse(a.houseName, h)
                 );
                 const cloneName = cat?.cloneGroup || acc?.cloneGroup || 'Sem clones';
-                const houseTheme = getHouseColorTheme(h, cloneName, cat?.color);
-
                 return (
                   <button
                     key={h}
@@ -1114,20 +1226,16 @@ export const EntradasScreen: React.FC = () => {
                     aria-pressed={isSelected}
                     onClick={() => handleToggleHousePill(h)}
                     title={`${shortH} · Provedor: ${cloneName} · ${activeAccsCount} conta(s) ativa(s)`}
-                    style={{
-                      backgroundColor: houseTheme.bg,
-                      borderColor: houseTheme.primary,
-                      color: houseTheme.text,
-                      boxShadow: isSelected ? `0 0 0 2px ${houseTheme.ring}` : undefined,
-                    }}
-                    className={`shrink-0 whitespace-nowrap rounded-[7px] border px-[9px] py-[4px] text-[11.5px] flex items-center gap-[5px] cursor-pointer transition-colors ${
-                      isSelected ? 'font-bold' : 'font-medium hover:brightness-[0.97]'
+                    className={`shrink-0 whitespace-nowrap rounded-full border px-[10px] py-[5px] text-[11.5px] flex items-center gap-[5px] cursor-pointer transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F6B5C] ${
+                      isSelected
+                        ? 'border-[#0F6B5C] bg-[#E6F4F1] text-[#0B4F44] font-semibold'
+                        : 'border-[#CBD5E1] bg-white text-[#475569] font-medium hover:border-[#94A3B8] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
                     }`}
                   >
                     {isSelected ? (
-                      <Check className="w-[11.5px] h-[11.5px]" strokeWidth={2.5} aria-hidden="true" />
+                      <Check className="w-[11.5px] h-[11.5px] text-[#0F6B5C]" strokeWidth={2.5} aria-hidden="true" />
                     ) : (
-                      <span className="text-[12px] font-bold opacity-60" aria-hidden="true">
+                      <span className="text-[12px] font-medium leading-none text-[#64748B]" aria-hidden="true">
                         +
                       </span>
                     )}
@@ -1135,11 +1243,9 @@ export const EntradasScreen: React.FC = () => {
                     <span>{shortH}</span>
 
                     <span
-                      style={{
-                        backgroundColor: houseTheme.badgeBg,
-                        color: houseTheme.badgeText,
-                      }}
-                      className="rounded-[4px] px-[4.5px] py-[0.5px] text-[9.5px] font-bold tabular-nums"
+                      className={`rounded-full px-[5px] py-[1px] text-[9.5px] font-bold tabular-nums ${
+                        isSelected ? 'bg-[#0F6B5C] text-white' : 'bg-[#F1F5F9] text-[#64748B]'
+                      }`}
                     >
                       {activeAccsCount}
                     </span>
@@ -1151,18 +1257,18 @@ export const EntradasScreen: React.FC = () => {
         </div>
 
         {/* Planilha de Pernas Ultra-Enxuta: [# | Casa | Conta da Casa | Odd | Stake | Status | Retorno | ×] */}
-        <div className="overflow-x-auto">
+        <div className="entry-legs min-w-0">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="text-left text-[#64748B] text-[11px] font-bold uppercase tracking-wider bg-[#F1F5F9] border-b border-[#E2E8F0]">
-                <th className="py-[8px] px-[10px] w-[38px]">#</th>
-                <th className="py-[8px] px-[8px] w-[165px]">Casa</th>
-                <th className="py-[8px] px-[8px] min-w-[270px]">Conta da Casa (Exclusiva)</th>
-                <th className="py-[8px] px-[8px] w-[105px] text-right">Odd</th>
-                <th className="py-[8px] px-[8px] w-[140px] text-right">Stake</th>
-                <th className="py-[8px] px-[8px] w-[295px] text-center">Status da Perna</th>
-                <th className="py-[8px] px-[8px] w-[145px] text-right">Retorno</th>
-                <th className="py-[8px] px-[6px] w-[36px]" />
+                <th className="py-[8px] px-[10px]">#</th>
+                <th className="py-[8px] px-[8px]">Casa</th>
+                <th className="py-[8px] px-[8px]">Conta da casa</th>
+                <th className="py-[8px] px-[8px] text-right">Odd</th>
+                <th className="py-[8px] px-[8px] text-right">Stake (USDT)</th>
+                <th className="py-[8px] px-[8px]">Resultado</th>
+                <th className="py-[8px] px-[8px] text-right">Retorno (USDT)</th>
+                <th className="py-[8px] px-[6px]" />
               </tr>
             </thead>
             <tbody>
@@ -1183,10 +1289,12 @@ export const EntradasScreen: React.FC = () => {
                   typedStakeNum > 0 && typedOddNum > 1
                     ? roundCurrency(typedStakeNum * typedOddNum)
                     : null;
+                const selectedAccountStakeTotal = houseLegs.reduce((total, item) => item.accountId === leg.accountId ? total + (parseCurrencyInput(item.stakeStr) || 0) : total, 0);
                 const exceedsBalance =
+                  !editingEntryId &&
                   selectedAccObj &&
-                  typedStakeNum > 0 &&
-                  typedStakeNum > selectedAccObj.availableBalance;
+                  selectedAccountStakeTotal > 0 &&
+                  selectedAccountStakeTotal > selectedAccObj.availableBalance;
 
                 const rowBg =
                   leg.result === 'green'
@@ -1200,7 +1308,7 @@ export const EntradasScreen: React.FC = () => {
                     key={leg.id}
                     className={`border-b border-[#E2E8F0] ${rowBg}`}
                   >
-                    <td className="py-[9px] px-[10px]">
+                    <td data-label="Perna" className="py-[9px] px-[10px]">
                       <span
                         className={`w-[22px] h-[22px] rounded-full inline-flex items-center justify-center text-[11px] font-bold tabular-nums ${
                           leg.result === 'green'
@@ -1215,7 +1323,7 @@ export const EntradasScreen: React.FC = () => {
                     </td>
 
                     {/* 1. Casa (Nomes curtos) */}
-                    <td className="py-[9px] px-[8px]">
+                    <td data-label="Casa" className="py-[9px] px-[8px]">
                       <select
                         aria-label={`Selecionar casa da ${idx + 1}ª perna`}
                         value={leg.houseName}
@@ -1236,19 +1344,22 @@ export const EntradasScreen: React.FC = () => {
                     </td>
 
                     {/* 2. Conta da Casa (filtrada exclusivamente para a casa + badge de moeda/saldo) */}
-                    <td className="py-[9px] px-[8px]">
-                      <div className="flex items-center gap-[6px]">
+                    <td data-label="Conta da casa · saldo registrado" className="py-[9px] px-[8px]">
+                      <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
                         <select
                           id={`leg-acc-${idx}`}
                           aria-label={`Conta da ${idx + 1}ª casa (${leg.houseName})`}
                           value={leg.accountId}
                           onChange={(e) => handleUpdateLeg(idx, { accountId: e.target.value })}
-                          className={`flex-1 px-[10px] py-[7px] border rounded-[8px] text-[13px] font-medium bg-white cursor-pointer ${
+                          className={`min-w-0 flex-1 px-[10px] py-[7px] border rounded-[8px] text-[13px] font-medium bg-white cursor-pointer ${
                             exceedsBalance
                               ? 'border-[#B91C1C] bg-[#FEF2F2]'
                               : 'border-[#CBD5E1] text-[#0F172A]'
                           }`}
                         >
+                          {selectedAccObj && !matchingAccountsForLeg.some((account) => account.id === selectedAccObj.id) && (
+                            <option value={selectedAccObj.id}>{selectedAccObj.label} · Conta do registro</option>
+                          )}
                           {matchingAccountsForLeg.length === 0 ? (
                             <option value="">
                               Sem conta em {formatShortHouseName(leg.houseName)}
@@ -1281,7 +1392,7 @@ export const EntradasScreen: React.FC = () => {
                           <span
                             title={
                               exceedsBalance
-                                ? `Stake maior que o saldo disponível (${formatHouseAccountBalance(
+                                ? `Soma das stakes desta conta maior que o saldo registrado (${formatHouseAccountBalance(
                                     selectedAccObj.availableBalance,
                                     selectedAccObj.accountCurrency
                                   )})`
@@ -1302,10 +1413,8 @@ export const EntradasScreen: React.FC = () => {
                                 <AlertCircle className="w-[11px] h-[11px]" strokeWidth={2} />
                                 <span>Saldo</span>
                               </>
-                            ) : selectedAccObj.accountCurrency === 'EUR' ? (
-                              'EUR €'
                             ) : (
-                              'USDT'
+                              selectedAccObj.accountCurrency || 'USDT'
                             )}
                           </span>
                         )}
@@ -1313,11 +1422,12 @@ export const EntradasScreen: React.FC = () => {
                     </td>
 
                     {/* 3. Odd */}
-                    <td className="py-[9px] px-[8px]">
+                    <td data-label="Odd" className="py-[9px] px-[8px]">
                       <input
                         id={`leg-odd-${idx}`}
                         aria-label={`Odd da ${idx + 1}ª perna`}
                         value={leg.oddStr}
+                        inputMode="decimal"
                         onChange={(e) => handleUpdateLeg(idx, { oddStr: e.target.value })}
                         placeholder="1,98"
                         className="w-full px-[9px] py-[7px] border border-[#CBD5E1] rounded-[8px] text-[13px] font-semibold text-right bg-white text-[#0F172A] tabular-nums"
@@ -1325,12 +1435,13 @@ export const EntradasScreen: React.FC = () => {
                     </td>
 
                     {/* 4. Stake */}
-                    <td className="py-[9px] px-[8px]">
+                    <td data-label="Stake (USDT)" className="py-[9px] px-[8px]">
                       <div className="relative flex items-center">
                         <input
                           id={`leg-stake-${idx}`}
                           aria-label={`Stake da ${idx + 1}ª perna`}
                           value={leg.stakeStr}
+                          inputMode="decimal"
                           onChange={(e) => handleUpdateLeg(idx, { stakeStr: e.target.value })}
                           placeholder="0,00"
                           className="w-full px-[9px] py-[7px] border border-[#CBD5E1] rounded-[8px] text-[13px] font-bold text-right bg-white text-[#0F172A] tabular-nums"
@@ -1339,9 +1450,17 @@ export const EntradasScreen: React.FC = () => {
                     </td>
 
                     {/* 5. Status Interativo */}
-                    <td className="py-[9px] px-[8px]">
+                    <td data-label="Resultado" className="py-[9px] px-[8px]">
+                      <select
+                        className="entry-result-select w-full px-[9px] py-[7px] rounded-[8px] border border-[#CBD5E1] bg-white text-[12px] font-semibold text-[#0F172A]"
+                        aria-label={`Resultado da ${idx + 1}ª perna (${leg.houseName})`}
+                        value={leg.result}
+                        onChange={(event) => handleUpdateLeg(idx, { result: event.target.value as LegResult })}
+                      >
+                        {LEG_RESULT_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                      </select>
                       <div
-                        className="inline-flex items-center justify-center gap-[3px] bg-[#F1F5F9] p-[3px] rounded-[8px] border border-[#E2E8F0]"
+                        className="entry-result-buttons items-center justify-center gap-[3px] bg-[#F1F5F9] p-[3px] rounded-[8px] border border-[#E2E8F0]"
                         role="group"
                         aria-label={`Resultado de ${leg.houseName}`}
                       >
@@ -1352,6 +1471,7 @@ export const EntradasScreen: React.FC = () => {
                               key={opt.id}
                               type="button"
                               title={opt.label}
+                              aria-pressed={active}
                               onClick={() => handleUpdateLeg(idx, { result: opt.id })}
                               className={`px-[8px] py-[4px] rounded-[8px] text-[11px] font-bold border cursor-pointer ${
                                 active
@@ -1367,7 +1487,7 @@ export const EntradasScreen: React.FC = () => {
                     </td>
 
                     {/* 6. Retorno (Auto-calculado no Green + prévia de potencial no Pendente) */}
-                    <td className="py-[9px] px-[8px]">
+                    <td data-label="Retorno (USDT)" className="py-[9px] px-[8px]">
                       {isRed ? (
                         <div className="px-[9px] py-[7px] border border-dashed border-[#FECACA] rounded-[8px] text-[12px] font-semibold text-right bg-[#FEF2F2] text-[#B91C1C] tabular-nums">
                           0,00
@@ -1378,6 +1498,7 @@ export const EntradasScreen: React.FC = () => {
                             id={`leg-ret-${idx}`}
                             aria-label={`Retorno da ${idx + 1}ª perna`}
                             value={leg.returnStr}
+                            inputMode="decimal"
                             onChange={(e) => handleUpdateLeg(idx, { returnStr: e.target.value })}
                             placeholder={
                               potentialReturn
@@ -1406,6 +1527,7 @@ export const EntradasScreen: React.FC = () => {
                           onClick={() => handleRemoveLegAt(idx)}
                           className="w-[26px] h-[26px] rounded-[8px] text-[#64748B] hover:text-[#B91C1C] hover:bg-[#FEF2F2] inline-flex items-center justify-center cursor-pointer"
                           title="Remover perna"
+                          aria-label={`Remover ${idx + 1}ª perna (${leg.houseName})`}
                         >
                           <X className="w-[14px] h-[14px]" strokeWidth={2} />
                         </button>
@@ -1418,7 +1540,7 @@ export const EntradasScreen: React.FC = () => {
           </table>
         </div>
 
-        {/* Rodapé da Calculadora: + Adicionar Perna + Resumo P/L em Tempo Real + Ações */}
+        {/* Ações de operação: adicionar perna, conferir resultado e salvar */}
         <div className="px-[18px] py-[12px] bg-[#F8FAFC] flex flex-wrap justify-between items-center gap-[12px]">
           <div className="flex flex-wrap items-center gap-[10px]">
             <button
@@ -1428,6 +1550,17 @@ export const EntradasScreen: React.FC = () => {
             >
               <Plus className="w-[13px] h-[13px]" strokeWidth={2} />
               <span>Adicionar perna</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAutoDistributeSurebet}
+              disabled={Boolean(editingEntryId) || hasRecordedResult}
+              title="Calcula e preenche os valores de cada perna com base nas odds informadas"
+              className="px-[12px] py-[6px] rounded-[8px] bg-[#0F6B5C] hover:bg-[#0B4F44] text-white text-[12px] font-bold cursor-pointer inline-flex items-center gap-[6px] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Scale className="w-[14px] h-[14px]" strokeWidth={1.85} />
+              <span>Equalizar valores</span>
             </button>
 
             {remainingCapitalToAllocate !== 0 && (
@@ -1468,7 +1601,7 @@ export const EntradasScreen: React.FC = () => {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-[8px]">
+          <div className="entry-main-actions flex flex-wrap items-center gap-[8px]">
             <label className="flex gap-[6px] items-center text-[12px] font-medium text-[#475569] cursor-pointer px-[8px] py-[5px] rounded-[8px] hover:bg-[#F1F5F9]">
               <input
                 id="q-ja"
@@ -1619,7 +1752,7 @@ export const EntradasScreen: React.FC = () => {
       {/* Tabela Interativa de Entradas Registradas */}
       <section className="bg-white border border-[#CBD5E1] rounded-[12px] overflow-hidden flex flex-col">
         <div className="px-[18px] py-[11px] bg-[#0F172A] text-white flex flex-wrap justify-between items-center gap-[10px]">
-          <div className="flex items-center gap-[10px]">
+          <div className="flex min-w-0 flex-wrap items-center gap-[10px]">
             <h3 className="m-0 text-[14.5px] font-bold text-white">
               Histórico de Entradas ({filteredEntriesList.length})
             </h3>
@@ -1630,6 +1763,7 @@ export const EntradasScreen: React.FC = () => {
               />
               <input
                 type="search"
+                aria-label="Buscar no histórico de entradas"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
                 placeholder="Filtrar por casa, evento ou mercado..."
@@ -1836,7 +1970,7 @@ export const EntradasScreen: React.FC = () => {
                               'success',
                               `Operação "${entry.houses
                                 .map((h) => formatShortHouseName(h))
-                                .join(' × ')}" carregada na calculadora acima.`
+                                .join(' × ')}" carregada no formulário acima.`
                             );
                           }}
                           className={`px-[10px] py-[4.5px] rounded-[8px] border text-[11.5px] font-semibold cursor-pointer ${

@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { EnigmaProvider, useEnigma } from './context/EnigmaContext.tsx';
+import { AppearanceProvider } from './context/AppearanceContext.tsx';
 import { SidebarNav } from './components/SidebarNav.tsx';
 import { ScrollspyScreenGroup } from './components/ScrollspyScreenGroup.tsx';
 import { VisaoGeralScreen } from './screens/VisaoGeralScreen.tsx';
@@ -306,7 +307,9 @@ const EnigmaWorkspace: React.FC = () => {
 export default function App() {
   return (
     <EnigmaProvider>
-      <EnigmaWorkspace />
+      <AppearanceProvider>
+        <EnigmaWorkspace />
+      </AppearanceProvider>
     </EnigmaProvider>
   );
 }

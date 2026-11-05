@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, RotateCcw, Wallet } from 'lucide-react';
 import { useEnigma } from '../context/EnigmaContext.tsx';
+import { OperationalAnalytics } from '../components/dashboard/OperationalAnalytics.tsx';
 import {
   evaluateBetEntry,
   formatBrlEquivalent,
@@ -11,17 +12,20 @@ import {
 export const VisaoGeralScreen: React.FC = () => {
   const {
     globalSummary,
-    entries,
-    withdrawals,
-    deposits,
-    divergences,
+    operationalSnapshot,
+    settledEntries,
+    settlementUndatedCount,
     houseAccounts,
     partnerships,
     ledgerMovements,
+    dateFilter,
+    activePeriodLabel,
+    applyDatePreset,
     setActiveScreen,
     resetDemoData,
   } = useEnigma();
 
+  const { entries, withdrawals, deposits, divergences } = operationalSnapshot;
   const openEntries = entries.filter((e) => e.resultStatus !== 'concluida');
   const transitWithdrawals = withdrawals.filter(isWithdrawalInTransit);
   const openDivergences = divergences.filter((d) => d.status !== 'resolvida');
@@ -37,7 +41,7 @@ export const VisaoGeralScreen: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col justify-between gap-[28px]"
+      className="flex flex-col gap-[20px]"
       style={{ minHeight: 'min(calc(100svh - 126px), 1040px)' }}
     >
       <div className="flex flex-wrap justify-between items-center gap-[12px]">
@@ -175,87 +179,16 @@ export const VisaoGeralScreen: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)] gap-[24px] items-stretch">
-      {/* Barra Visual de Alocação do Capital Global */}
-      {globalSummary.totalGlobalCapital > 0 && (
-        <div className="bg-white border border-[#E2E8F0] rounded-[12px] px-[20px] py-[18px] flex flex-col gap-[14px]">
-          <div>
-            <div className="text-[14px] font-semibold text-[#0F172A]">Distribuição do capital</div>
-            <div className="text-[12px] text-[#64748B] mt-[4px]">
-              Saldo e participação por destino, calculados sobre o capital registrado.
-            </div>
-          </div>
-          <div className="w-full h-[8px] rounded-full bg-[#F1F5F9] overflow-hidden flex gap-[2px]">
-            <div
-              style={{
-                width: `${(globalSummary.availableInHouses / globalSummary.totalGlobalCapital) * 100}%`,
-              }}
-              className="h-full bg-[#0F6B5C]"
-              title={`Disponível nas casas: ${formatCurrencyBRL(globalSummary.availableInHouses)}`}
-            />
-            <div
-              style={{
-                width: `${(globalSummary.totalBankBalances / globalSummary.totalGlobalCapital) * 100}%`,
-              }}
-              className="h-full bg-[#334155]"
-              title={`Carteiras/Corretoras: ${formatCurrencyBRL(globalSummary.totalBankBalances)}`}
-            />
-            <div
-              style={{
-                width: `${(globalSummary.reservedInOpenBets / globalSummary.totalGlobalCapital) * 100}%`,
-              }}
-              className="h-full bg-[#94A3B8]"
-              title={`Em apostas abertas: ${formatCurrencyBRL(globalSummary.reservedInOpenBets)}`}
-            />
-            <div
-              style={{
-                width: `${(globalSummary.inTransitWithdrawals / globalSummary.totalGlobalCapital) * 100}%`,
-              }}
-              className="h-full bg-[#B45309]"
-              title={`Saques em trânsito: ${formatCurrencyBRL(globalSummary.inTransitWithdrawals)}`}
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[20px] gap-y-[14px] pt-[2px]">
-            {[
-              {
-                label: 'Casas',
-                amount: globalSummary.availableInHouses,
-                color: 'bg-[#0F6B5C]',
-              },
-              {
-                label: 'Carteiras e corretoras',
-                amount: globalSummary.totalBankBalances,
-                color: 'bg-[#334155]',
-              },
-              {
-                label: 'Apostas em aberto',
-                amount: globalSummary.reservedInOpenBets,
-                color: 'bg-[#94A3B8]',
-              },
-              {
-                label: 'Saques em trânsito',
-                amount: globalSummary.inTransitWithdrawals,
-                color: 'bg-[#B45309]',
-              },
-            ].map((item) => (
-              <div key={item.label} className="border-t border-[#E2E8F0] pt-[10px]">
-                <div className="flex items-center justify-between gap-[8px] text-[12px] text-[#475569]">
-                  <span className="inline-flex items-center gap-[7px]">
-                    <span className={`w-[8px] h-[8px] rounded-full shrink-0 ${item.color}`} />
-                    {item.label}
-                  </span>
-                  <span className="font-medium tabular-nums">
-                    {Math.round((item.amount / globalSummary.totalGlobalCapital) * 100)}%
-                  </span>
-                </div>
-                <div className="mt-[4px] text-[14px] font-semibold tabular-nums text-[#0F172A]">
-                  {formatCurrencyBRL(item.amount)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <OperationalAnalytics
+        entries={settledEntries}
+        undatedCount={settlementUndatedCount}
+        summary={globalSummary}
+        periodLabel={activePeriodLabel}
+        activePreset={dateFilter.preset}
+        onPeriodChange={applyDatePreset}
+        onNavigate={setActiveScreen}
+        onOpenEntry={(entryId) => setActiveScreen('entradas', { entryId })}
+      />
 
       {/* Situação das contas e principais próximos passos */}
       <section className="bg-white border border-[#CBD5E1] rounded-[12px] overflow-hidden flex flex-col">
@@ -354,7 +287,6 @@ export const VisaoGeralScreen: React.FC = () => {
           </button>
         </div>
       </section>
-      </div>
 
       {/* Ações Prioritárias de Triagem (levam ao registro original) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-[24px]">

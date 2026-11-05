@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useEnigma } from '../context/EnigmaContext.tsx';
+import { CryptoRouteFields, CryptoRouteSummary, useCryptoNetworks } from '../components/CryptoNetworkManager.tsx';
+import { buildCryptoRouteMetadata } from '../domain/cryptoNetworks.ts';
 import {
   formatCurrencyBRL,
   formatBrlEquivalent,
@@ -40,14 +42,21 @@ export const SaquesScreen: React.FC = () => {
 
   // Tab do formulário principal: 'saque' | 'deposito'
   const [formTab, setFormTab] = useState<'saque' | 'deposito'>('saque');
-  const [selectedCryptoNetwork, setSelectedCryptoNetwork] = useState<string>('BEP20 (BSC)');
+  const { networks: cryptoNetworks, issue: cryptoCatalogIssue } = useCryptoNetworks();
+  const [withdrawalNetwork, setWithdrawalNetwork] = useState('');
+  const [depositNetwork, setDepositNetwork] = useState('');
+  const [withdrawalAsset, setWithdrawalAsset] = useState('');
+  const [depositAsset, setDepositAsset] = useState('');
+  const [withdrawalCompatibilityConfirmed, setWithdrawalCompatibilityConfirmed] = useState(false);
+  const [depositCompatibilityConfirmed, setDepositCompatibilityConfirmed] = useState(false);
+  const selectedCryptoNetwork = formTab === 'saque' ? withdrawalNetwork : depositNetwork;
   const [showCryptoGuide, setShowCryptoGuide] = useState<boolean>(false);
 
   // Campos de Registrar Saque (fiel ao 02_Saques_e_transferencias.html)
   const [originHouseAccountId, setOriginHouseAccountId] = useState<string>('acc_bet365_maria');
   const [withdrawalAmountStr, setWithdrawalAmountStr] = useState<string>('2.000,00');
   const [destBankId, setDestBankId] = useState<string>('bank_inter_maria');
-  const [requestedAtStr, setRequestedAtStr] = useState<string>('11/10/2026 10:15');
+  const [requestedAtStr, setRequestedAtStr] = useState<string>(() => new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ''));
   const [facial1Str, setFacial1Str] = useState<string>('8,00');
   const [facial2Str, setFacial2Str] = useState<string>('8,00');
   const [facial3Str, setFacial3Str] = useState<string>('');
@@ -69,6 +78,9 @@ export const SaquesScreen: React.FC = () => {
   const [depFeeStr, setDepFeeStr] = useState<string>('0,00');
   const [depStatus, setDepStatus] = useState<'pretendido' | 'confirmado'>('confirmado');
   const [depNotes, setDepNotes] = useState<string>('Reforço de saldo para operação');
+
+  useEffect(() => { setWithdrawalCompatibilityConfirmed(false); }, [originHouseAccountId, destBankId]);
+  useEffect(() => { setDepositCompatibilityConfirmed(false); }, [depositType, depOriginBankId, depDestHouseAccountId, depDestBankId]);
 
   // Campos de Facial avulsa ou semanal
   const [standaloneAccountId, setStandaloneAccountId] = useState<string>('acc_kto_maria');
@@ -111,6 +123,7 @@ export const SaquesScreen: React.FC = () => {
       facialCosts: faciais,
       noCostConfirmed: noCostChecked,
       initialStage: stage,
+      cryptoRoute: buildCryptoRouteMetadata(cryptoNetworks, withdrawalNetwork, withdrawalAsset, withdrawalCompatibilityConfirmed),
     });
   };
 
@@ -126,6 +139,7 @@ export const SaquesScreen: React.FC = () => {
       feeAmount: fee,
       status: depStatus,
       notes: depNotes,
+      cryptoRoute: buildCryptoRouteMetadata(cryptoNetworks, depositNetwork, depositAsset, depositCompatibilityConfirmed),
     });
   };
 
@@ -151,19 +165,6 @@ export const SaquesScreen: React.FC = () => {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-[8px]">
-          <div className="flex items-center gap-[6px]">
-            <span className="text-[#66716C] text-[12px] font-medium">Rede:</span>
-            <select
-              aria-label="Selecionar rede blockchain da operação"
-              value={selectedCryptoNetwork}
-              onChange={(e) => setSelectedCryptoNetwork(e.target.value)}
-              className="px-[10px] py-[6px] rounded-[8px] border border-[#CBD2CD] bg-white text-[#0F6B5C] font-semibold text-[12px] cursor-pointer"
-            >
-              <option value="BEP20 (BSC)">BEP20 (BSC)</option>
-              <option value="ERC20 (Ethereum)">ERC20 (Ethereum)</option>
-              <option value="Arbitrum / Optimism">Arbitrum / Optimism</option>
-            </select>
-          </div>
           <button
             type="button"
             onClick={() => setShowCryptoGuide((prev) => !prev)}
@@ -183,10 +184,10 @@ export const SaquesScreen: React.FC = () => {
         <div className="bg-[#FAFDFB] border border-[#CBE2D8] rounded-[12px] px-[16px] py-[12px] flex flex-wrap justify-between items-center gap-[12px] text-[12px]">
           <div className="flex flex-col gap-[2px]">
             <b className="text-[#0B4F44]">
-              Fluxo Padrão Cripto ({operatorPreferredExchange} / Binance / MetaMask ↔ Casa):
+              Conferência da operação{selectedCryptoNetwork ? ` · ${selectedCryptoNetwork}` : ''}:
             </b>
             <span className="text-[#44504B]">
-              1. Depositar na corretora (<b>{operatorPreferredExchange}</b> ou <b>Binance</b>) e comprar <b>USDT</b> · 2. Na Casa: selecionar depósito em <b>USDT</b> e rede (<b>BEP20</b> ou <b>ERC20</b>) — <i>mesmo que o saldo da casa fique em <b>EUR (€)</b></i> · 3. Na Corretora: <b>Ativos</b> → <b>Enviar</b> → <b>USDT</b> → <b>Ler QR Code</b> e selecionar a rede.
+              Confirme o ativo, a mesma rede na origem e no destino, o endereço e eventual memo/tag nos serviços utilizados. Confira taxas e conversão para a moeda de saldo separadamente. {selectedCryptoNetwork ? `A rede ${selectedCryptoNetwork} foi escolhida manualmente neste formulário.` : 'Escolha a rede no formulário quando a operação for cripto.'} O cadastro não comprova compatibilidade com nenhuma casa, carteira ou corretora. Se houver ponte entre redes, registre essa etapa separadamente.
             </span>
           </div>
         </div>
@@ -209,7 +210,7 @@ export const SaquesScreen: React.FC = () => {
                     : 'text-[#66716C]'
                 }`}
               >
-                Registrar saque USDT (Casa → Carteira/Corretora)
+                Registrar saque
               </button>
               <button
                 type="button"
@@ -220,10 +221,27 @@ export const SaquesScreen: React.FC = () => {
                     : 'text-[#66716C]'
                 }`}
               >
-                Registrar depósito USDT (Binance/MetaMask → Casa)
+                Depósito ou transferência
               </button>
             </div>
           </div>
+
+          {cryptoCatalogIssue && <p role="alert" className="m-0 text-[12px] text-[#8A5A10]">{cryptoCatalogIssue}</p>}
+          <CryptoRouteFields
+            networks={cryptoNetworks}
+            selectedNetwork={selectedCryptoNetwork}
+            onNetworkChange={(value) => {
+              if (formTab === 'saque') { setWithdrawalNetwork(value); setWithdrawalCompatibilityConfirmed(false); }
+              else { setDepositNetwork(value); setDepositCompatibilityConfirmed(false); }
+            }}
+            assetSymbol={formTab === 'saque' ? withdrawalAsset : depositAsset}
+            onAssetChange={(value) => {
+              if (formTab === 'saque') { setWithdrawalAsset(value); setWithdrawalCompatibilityConfirmed(false); }
+              else { setDepositAsset(value); setDepositCompatibilityConfirmed(false); }
+            }}
+            confirmed={formTab === 'saque' ? withdrawalCompatibilityConfirmed : depositCompatibilityConfirmed}
+            onConfirmedChange={formTab === 'saque' ? setWithdrawalCompatibilityConfirmed : setDepositCompatibilityConfirmed}
+          />
 
           {formTab === 'saque' ? (
             <>
@@ -280,7 +298,7 @@ export const SaquesScreen: React.FC = () => {
 
                 <div className="flex flex-col gap-[6px]">
                   <label htmlFor="s-vl" className="text-[12px] font-medium text-[#66716C]">
-                    Valor do saque (enviado via USDT · conversão EUR / R$ automática)
+                    Valor do saque (moeda do registro local)
                   </label>
                   <input
                     id="s-vl"
@@ -294,13 +312,13 @@ export const SaquesScreen: React.FC = () => {
                     {roundCurrency(
                       (parseCurrencyInput(withdrawalAmountStr) || 0) / (eurUsdtRate || 1.08)
                     ).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}{' '}
-                    EUR · Rede: {selectedCryptoNetwork}
+                    EUR · Rede: {withdrawalNetwork || 'não informada'}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-[6px]">
                   <label htmlFor="s-ds" className="text-[12px] font-medium text-[#66716C]">
-                    Carteira / Corretora de destino ({operatorPreferredExchange} / Binance / MetaMask)
+                    Conta / Carteira de destino
                   </label>
                   <select
                     id="s-ds"
@@ -639,6 +657,8 @@ export const SaquesScreen: React.FC = () => {
                       : `para ${bank?.label || 'Banco'}`}
                   </div>
 
+                  <CryptoRouteSummary route={w.cryptoRoute} />
+
                   <div className="flex flex-wrap justify-between items-center gap-[6px]">
                     <span
                       className={`px-[9px] py-[2px] rounded-full text-[12px] ${
@@ -945,6 +965,7 @@ export const SaquesScreen: React.FC = () => {
                     <td className="py-[9px] px-[8px]">{originBank?.label || dep.originBankId}</td>
                     <td className="py-[9px] px-[8px]">
                       {destHouse?.label || destBank?.label || 'Destino'}
+                      <CryptoRouteSummary route={dep.cryptoRoute} />
                     </td>
                     <td className="py-[9px] px-[8px] text-right tabular-nums">
                       {formatCurrencyBRL(dep.amount)}

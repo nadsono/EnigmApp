@@ -670,6 +670,11 @@ export function canUserAccessCredentials(
   return false;
 }
 
+export function isLikelyCryptoWalletAddress(value: string): boolean {
+  const normalized = value.trim();
+  return /^(0x|bc1|T[1-9A-HJ-NP-Za-km-z]{15,})/i.test(normalized);
+}
+
 /**
  * Parser e validador de extratos CSV/OFX com deduplicação e conciliação de saques.
  */

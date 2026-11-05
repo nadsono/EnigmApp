@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { buildDashboardReport } from '../domain/reporting.ts';
+import type { CryptoRouteMetadata } from '../domain/cryptoNetworks.ts';
 import {
   AVAILABLE_HOUSES,
   INITIAL_BANK_ACCOUNTS,
@@ -29,6 +31,7 @@ import {
   getMonthYearPeriod,
   getUsdtBrlRate,
   isDateWithinRange,
+  isLikelyCryptoWalletAddress,
   isWithdrawalInTransit,
   normalizePeriodBounds,
   parseOperationalMonthYear,
@@ -213,6 +216,14 @@ interface EnigmaContextValue {
   houseAccounts: HouseAccount[];
   bankAccounts: BankAccount[];
   entries: BetEntry[];
+  settledEntries: BetEntry[];
+  settlementUndatedCount: number;
+  operationalSnapshot: {
+    entries: BetEntry[];
+    withdrawals: Withdrawal[];
+    deposits: DepositTransfer[];
+    divergences: ReconciliationDivergence[];
+  };
   withdrawals: Withdrawal[];
   deposits: DepositTransfer[];
   costs: CostRecord[];
@@ -323,6 +334,7 @@ interface EnigmaContextValue {
     facialCosts: number[];
     noCostConfirmed: boolean;
     initialStage: 'solicitado' | 'concluido_casa';
+    cryptoRoute?: CryptoRouteMetadata;
   }) => boolean;
   advanceWithdrawalStage: (
     withdrawalId: string,
@@ -348,6 +360,7 @@ interface EnigmaContextValue {
     feeAmount?: number;
     status: 'pretendido' | 'enviado' | 'confirmado';
     notes: string;
+    cryptoRoute?: CryptoRouteMetadata;
   }) => boolean;
   confirmPendingDeposit: (depositId: string) => void;
 
@@ -392,6 +405,8 @@ interface EnigmaContextValue {
     chipLocation: string;
     selectedHouses: string[];
     creationCost: number;
+    address?: string;
+    notes?: string;
   }) => string;
   addHouseToPartnership: (params: {
     partnershipId: string;
@@ -411,13 +426,30 @@ interface EnigmaContextValue {
   }) => void;
   updateBankInPartnership: (
     bankId: string,
-    updates: Partial<Pick<BankAccount, 'bankName' | 'phoneDevice' | 'login' | 'passwordSecret' | 'pixKey' | 'status'>>
-  ) => void;
+    updates: Partial<Pick<BankAccount, 'bankName' | 'phoneDevice' | 'login' | 'passwordSecret' | 'pixKey' | 'status'>>,
+    options?: { destinationChangeConfirmed?: boolean }
+  ) => boolean;
   removeBankFromPartnership: (bankId: string) => void;
   updatePartnershipDetails: (
     partnershipId: string,
-    updates: Partial<Pick<Partnership, 'titularName' | 'address' | 'phones' | 'chipLocation' | 'pixWithdrawals' | 'pixPayments' | 'notes'>>
-  ) => void;
+    updates: Partial<
+      Pick<
+        Partnership,
+        | 'shortName'
+        | 'address'
+        | 'emailOperation'
+        | 'emailPersonal'
+        | 'phones'
+        | 'chipLocation'
+        | 'referral'
+        | 'pixWithdrawals'
+        | 'withdrawalNetwork'
+        | 'pixPayments'
+        | 'notes'
+      >
+    >,
+    options?: { confirmDestinationChange?: boolean }
+  ) => boolean;
   logCredentialReveal: (partnershipId: string, targetType: 'banco' | 'casa', targetLabel: string) => boolean;
 
   // Actions: Custos
@@ -1248,19 +1280,16 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   }, [credentialLogs, periodStart, periodEnd]);
 
-  const globalSummary = useMemo(
-    () =>
-      computeGlobalSummary({
-        partnerships: filteredData.partnerships,
-        houseAccounts: filteredData.houseAccounts,
-        bankAccounts: filteredData.bankAccounts,
-        entries: filteredData.entries,
-        withdrawals: filteredData.withdrawals,
-        deposits: filteredData.deposits,
-        divergences: filteredData.divergences,
-      }),
-    [filteredData]
-  );
+  const dashboardReport = useMemo(() => buildDashboardReport(
+    filterByUserPermission(currentUser, {
+      partnerships: allPartnerships, houseAccounts: allHouseAccounts, bankAccounts: allBankAccounts,
+      entries: allEntries, withdrawals: allWithdrawals, deposits: allDeposits,
+      costs: allCosts.filter((cost) => !cost.reversed), divergences: allDivergences,
+    }),
+    periodStart, periodEnd,
+  ), [currentUser, allPartnerships, allHouseAccounts, allBankAccounts, allEntries,
+    allWithdrawals, allDeposits, allCosts, allDivergences, periodStart, periodEnd]);
+  const globalSummary = dashboardReport.summary;
 
   const nowFormatted = () => {
     const d = new Date();
@@ -1717,6 +1746,7 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     facialCosts: number[];
     noCostConfirmed: boolean;
     initialStage: 'solicitado' | 'concluido_casa';
+    cryptoRoute?: CryptoRouteMetadata;
   }): boolean => {
     const acc = allHouseAccounts.find((a) => a.id === params.houseAccountId);
     const bank = allBankAccounts.find((b) => b.id === params.destinationBankId);
@@ -1766,6 +1796,7 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       bankReceivedAt: null,
       hoursElapsed: 0,
       operatorId: currentUser.id === 'admin' ? 'op_a' : currentUser.id,
+      cryptoRoute: params.cryptoRoute ? { ...params.cryptoRoute } : undefined,
     };
 
     // Desconta saldo disponível da casa e passa para Em trânsito (saques)
@@ -2049,6 +2080,7 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     feeAmount?: number;
     status: 'pretendido' | 'enviado' | 'confirmado';
     notes: string;
+    cryptoRoute?: CryptoRouteMetadata;
   }): boolean => {
     const originBank = allBankAccounts.find((b) => b.id === params.originBankId);
     if (!originBank || params.amount <= 0) {
@@ -2090,6 +2122,7 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       amount: roundCurrency(params.amount),
       feeAmount: fee,
       status: params.status,
+      cryptoRoute: params.cryptoRoute ? { ...params.cryptoRoute } : undefined,
       createdAt: nowFormatted(),
       confirmedAt: params.status === 'confirmado' ? nowFormatted() : null,
       operatorId: currentUser.id === 'admin' ? 'op_a' : currentUser.id,
@@ -2961,7 +2994,14 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     chipLocation: string;
     selectedHouses: string[];
     creationCost: number;
+    address?: string;
+    notes?: string;
   }): string => {
+    if (currentUser.role !== 'admin' && currentUser.role !== 'operador') {
+      notify('error', 'Seu perfil não tem autorização para cadastrar uma parceria diretamente.');
+      return '';
+    }
+
     const assignedOpId = currentUser.role === 'operador' ? currentUser.id : 'op_a';
     const newId = `parc_${Date.now()}`;
     const shortName = params.titularName.trim().split(' ')[0] || 'Novo Titular';
@@ -2974,7 +3014,7 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       shortName,
       cpf: params.cpf.trim() || '000.000.000-99',
       birthDate: params.birthDate.trim() || '01/01/1999',
-      address: 'Endereço cadastrado no atendimento',
+      address: params.address?.trim() || 'Endereço cadastrado no atendimento',
       emailOperation: params.emailOperation.trim() || `${shortName.toLowerCase()}.op@gmail.com`,
       emailPersonal: `${shortName.toLowerCase()}.pessoal@gmail.com`,
       phones: params.phones.trim() || '(00) 90000-0000',
@@ -2995,7 +3035,7 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         params.bankName || 'Inter'
       })`,
       pixPayments: params.cpf.trim() || '000.000.000-99',
-      notes: 'Cadastrada diretamente no atendimento.',
+      notes: params.notes?.trim() || 'Cadastrada diretamente no atendimento.',
       assignmentHistory: [
         {
           id: `ah_${Date.now()}`,
@@ -3153,7 +3193,10 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     pixKey: string;
   }) => {
     const p = allPartnerships.find((item) => item.id === params.partnershipId);
-    if (!p) return;
+    if (!p || !canUserAccessCredentials(currentUser, p)) {
+      notify('error', 'Seu perfil não tem autorização para cadastrar contas nesta parceria.');
+      return;
+    }
 
     const cleanBankName = params.bankName.trim();
     if (!cleanBankName) {
@@ -3167,14 +3210,14 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       bankName: cleanBankName,
       label: `${cleanBankName} · ${p.shortName}`,
       status: 'ativo',
-      phoneDevice: params.phoneDevice.trim() || p.chipLocation.split(' ')[1] || 'A22',
-      login: params.login.trim() || p.cpf,
-      passwordSecret: params.passwordSecret.trim() || `${cleanBankName}#${p.shortName}26`,
-      pixKey: params.pixKey.trim() || p.emailOperation,
+      phoneDevice: params.phoneDevice.trim(),
+      login: params.login.trim(),
+      passwordSecret: params.passwordSecret.trim(),
+      pixKey: params.pixKey.trim(),
       balance: 0,
       informedRealBalance: 0,
       lastReconciledAt: nowFormatted(),
-      authorizedOperatorIds: p.operatorId ? [p.operatorId] : ['op_a'],
+      authorizedOperatorIds: p.operatorId ? [p.operatorId] : [],
     };
 
     setAllBankAccounts((prev) => [...prev, newBank]);
@@ -3185,8 +3228,26 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     bankId: string,
     updates: Partial<
       Pick<BankAccount, 'bankName' | 'phoneDevice' | 'login' | 'passwordSecret' | 'pixKey' | 'status'>
-    >
-  ) => {
+    >,
+    options?: { destinationChangeConfirmed?: boolean }
+  ): boolean => {
+    const bank = allBankAccounts.find((item) => item.id === bankId);
+    const partnership = bank && allPartnerships.find((item) => item.id === bank.partnershipId);
+    if (!bank || !partnership || !canUserAccessCredentials(currentUser, partnership)) {
+      notify('error', 'Seu perfil não tem autorização para editar esta conta.');
+      return false;
+    }
+    const changedDestinations = (['pixKey', 'phoneDevice'] as const).filter(
+      (field) => updates[field] !== undefined && updates[field] !== bank[field]
+    );
+    if (changedDestinations.length && !options?.destinationChangeConfirmed) {
+      notify('error', 'Confira e confirme explicitamente o endereço e a rede antes de salvar.');
+      return false;
+    }
+    if (updates.bankName !== undefined && !updates.bankName.trim()) {
+      notify('error', 'Informe o nome da carteira ou corretora.');
+      return false;
+    }
     setAllBankAccounts((prev) =>
       prev.map((b) =>
         b.id === bankId
@@ -3200,10 +3261,27 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           : b
       )
     );
+    if (changedDestinations.length) {
+      const event: Partnership['assignmentHistory'][number] = {
+        id: 'wallet_destination_' + Date.now().toString(36),
+        date: nowFormatted(), action: 'destino_financeiro_alterado',
+        fromOperatorId: null, toOperatorId: null, authorName: currentUser.name,
+        note: 'Endereço ou rede da conta financeira atualizado após confirmação explícita. Conta: ' + bank.id + '. Valores sensíveis não são incluídos no histórico.',
+      };
+      setAllPartnerships((prev) => prev.map((item) => item.id === partnership.id
+        ? { ...item, assignmentHistory: [...item.assignmentHistory, event] } : item));
+    }
     notify('success', 'Carteira / Corretora atualizada com sucesso.');
+    return true;
   };
 
   const removeBankFromPartnership = (bankId: string) => {
+    const bank = allBankAccounts.find((item) => item.id === bankId);
+    const partnership = bank && allPartnerships.find((item) => item.id === bank.partnershipId);
+    if (!partnership || !canUserAccessCredentials(currentUser, partnership)) {
+      notify('error', 'Seu perfil não tem autorização para remover esta conta.');
+      return;
+    }
     setAllBankAccounts((prev) => prev.filter((b) => b.id !== bankId));
     notify('success', 'Carteira / Corretora removida da parceria.');
   };
@@ -3213,14 +3291,90 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     updates: Partial<
       Pick<
         Partnership,
-        'titularName' | 'address' | 'phones' | 'chipLocation' | 'pixWithdrawals' | 'pixPayments' | 'notes'
+        | 'shortName'
+        | 'address'
+        | 'emailOperation'
+        | 'emailPersonal'
+        | 'phones'
+        | 'chipLocation'
+        | 'referral'
+        | 'pixWithdrawals'
+        | 'withdrawalNetwork'
+        | 'pixPayments'
+        | 'notes'
       >
-    >
+    >,
+    options?: { confirmDestinationChange?: boolean }
   ) => {
+    const partnership = allPartnerships.find((item) => item.id === partnershipId);
+    if (!partnership) {
+      notify('error', 'A parceria selecionada não foi encontrada.');
+      return false;
+    }
+    if (!canUserAccessCredentials(currentUser, partnership)) {
+      notify('error', 'Seu perfil não tem autorização para editar os dados desta parceria.');
+      return false;
+    }
+
+    const destinationFields = [
+      'pixWithdrawals',
+      'withdrawalNetwork',
+      'pixPayments',
+    ] as const;
+    const changedDestinationFields = destinationFields.filter(
+      (field) =>
+        updates[field] !== undefined && (updates[field] ?? '') !== (partnership[field] ?? '')
+    );
+    const destinationChanged = changedDestinationFields.length > 0;
+
+    if (destinationChanged && !options?.confirmDestinationChange) {
+      notify('error', 'Confirme explicitamente a alteração do destino financeiro antes de salvar.');
+      return false;
+    }
+
+    const nextWithdrawalAddress = updates.pixWithdrawals ?? partnership.pixWithdrawals;
+    const nextWithdrawalNetwork = updates.withdrawalNetwork ?? partnership.withdrawalNetwork ?? '';
+    const withdrawalDestinationChanged = changedDestinationFields.some(
+      (field) => field === 'pixWithdrawals' || field === 'withdrawalNetwork'
+    );
+    if (
+      withdrawalDestinationChanged &&
+      isLikelyCryptoWalletAddress(nextWithdrawalAddress) &&
+      !nextWithdrawalNetwork.trim()
+    ) {
+      notify('error', 'Informe a rede da carteira de saque antes de salvar o endereço.');
+      return false;
+    }
+
+    const auditEvent: Partnership['assignmentHistory'][number] | null = destinationChanged
+      ? {
+          id: `dest_audit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+          date: nowFormatted(),
+          action: 'destino_financeiro_alterado',
+          fromOperatorId: null,
+          toOperatorId: null,
+          authorName: currentUser.name,
+          note: `Destino atualizado (${changedDestinationFields.map((field) => ({
+            pixWithdrawals: 'carteira de saque',
+            withdrawalNetwork: 'rede de saque',
+            pixPayments: 'rampa/chave de pagamento',
+          }[field])).join(', ')}). Os valores não são gravados no histórico.`,
+        }
+      : null;
+
     setAllPartnerships((prev) =>
-      prev.map((p) => (p.id === partnershipId ? { ...p, ...updates } : p))
+      prev.map((item) =>
+        item.id === partnershipId
+          ? {
+              ...item,
+              ...updates,
+              ...(auditEvent ? { assignmentHistory: [...item.assignmentHistory, auditEvent] } : {}),
+            }
+          : item
+      )
     );
     notify('success', 'Dados da ficha da parceria atualizados.');
+    return true;
   };
 
   const logCredentialReveal = (
@@ -3770,6 +3924,9 @@ export const EnigmaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         houseAccounts: filteredData.houseAccounts,
         bankAccounts: filteredData.bankAccounts,
         entries: filteredData.entries,
+        settledEntries: dashboardReport.settledEntries,
+        settlementUndatedCount: dashboardReport.undatedCount,
+        operationalSnapshot: dashboardReport.operationalSnapshot,
         withdrawals: filteredData.withdrawals,
         deposits: filteredData.deposits,
         costs: filteredData.costs,

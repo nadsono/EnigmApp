@@ -475,14 +475,22 @@ export const ConferenciaScreen: React.FC = () => {
                   return (
                     <tr
                       key={row.key}
-                      onClick={() => {
-                        if (matchingDiv) setSelectedDivergenceId(matchingDiv.id);
-                      }}
-                      className={`border-t border-[#EEF1EE] ${
-                        hasError ? 'bg-[#FEF7F6] cursor-pointer' : ''
-                      }`}
+                      className={`border-t border-[#EEF1EE] ${hasError ? 'bg-[#FEF7F6]' : ''}`}
                     >
-                      <td className="py-[10px] px-[8px] font-medium">{row.label}</td>
+                      <td className="py-[10px] px-[8px] font-medium">
+                        {matchingDiv ? (
+                          <button
+                            type="button"
+                            aria-pressed={activeDivergence?.id === matchingDiv.id}
+                            onClick={() => setSelectedDivergenceId(matchingDiv.id)}
+                            className="text-left hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F6B5C] cursor-pointer"
+                          >
+                            {row.label}
+                          </button>
+                        ) : (
+                          row.label
+                        )}
+                      </td>
                       <td className="py-[10px] px-[8px] text-right tabular-nums">
                         {formatCurrencyBRL(row.expected)}
                       </td>
@@ -559,10 +567,12 @@ export const ConferenciaScreen: React.FC = () => {
             </div>
             <div className="flex flex-col gap-[6px]">
               {divergences.map((div) => (
-                <div
+                <button
+                  type="button"
                   key={div.id}
+                  aria-pressed={activeDivergence?.id === div.id}
                   onClick={() => setSelectedDivergenceId(div.id)}
-                  className={`p-[10px_12px] rounded-[9px] border text-[12px] cursor-pointer transition-colors ${
+                  className={`w-full text-left p-[10px_12px] rounded-[9px] border text-[12px] cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F6B5C] ${
                     activeDivergence?.id === div.id
                       ? 'border-[#0F6B5C] bg-[#F4FAF8]'
                       : 'border-[#EEF1EE] bg-[#FAFBF9]'
@@ -587,7 +597,7 @@ export const ConferenciaScreen: React.FC = () => {
                   <div className="text-[#44504B] mt-[2px]">
                     Motivo: {div.justification} · Resp.: {div.responsibleName} ({div.updatedAt})
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>

@@ -24,6 +24,8 @@ import {
 import { serializeUsersPersistenceJson } from '../database/userRepository.ts';
 import { PROJECT_DATABASE_BOOT_MODE } from '../database/systemMaintenance.ts';
 import { CatalogManagerPanel } from '../components/CatalogManagerPanel.tsx';
+import { AppearanceSettings } from '../components/AppearanceSettings.tsx';
+import { CryptoNetworkManager } from '../components/CryptoNetworkManager.tsx';
 import type { UserAccountStatus, UserProfile, UserRole } from '../domain/types.ts';
 
 type AdminSettingsTab = 'usuarios' | 'catalogo' | 'sql_migrations';
@@ -682,13 +684,18 @@ export const ConfiguracoesScreen: React.FC = () => {
         </div>
       </header>
 
+      <AppearanceSettings />
+      <CryptoNetworkManager />
+
       {/* =====================================================================
           CENTRAL DE VERSIONAMENTO & MODOS DE OPERAÇÃO (v2.0 Cripto / v1.5 Híbrido / v1.0 Bancos)
          ===================================================================== */}
       <section
-        aria-label="Central de Versionamento e Modos de Operação"
+        aria-label="Preferências da operação"
         className="bg-[#FFFFFF] border-2 border-[#0F6B5C] rounded-[14px] p-[20px] shadow-xs flex flex-col gap-[16px]"
       >
+        <details className="rounded-[8px] border border-[#D4DDD8] p-[12px]">
+          <summary className="cursor-pointer text-[13px] font-semibold text-[#44504B]">Perfis de demonstração (avançado)</summary>
         <div className="flex flex-wrap justify-between items-start gap-[12px]">
           <div>
             <div className="flex flex-wrap items-center gap-[8px]">
@@ -700,7 +707,7 @@ export const ConfiguracoesScreen: React.FC = () => {
               </span>
             </div>
             <h2 className="text-[18px] font-bold text-[#1B2421] mt-[6px]">
-              Versionamento do Ecossistema: Offshore Cripto (v2.0), Operação Híbrida (v1.5) e Clássico Bancos/PIX (v1.0)
+              Dados de exemplo por perfil
             </h2>
             <p className="text-[13px] text-[#5E6B65] mt-[2px]">
               Alterne a qualquer momento entre a nova versão <b>v2.0 (Offshore Cripto com OKX/Binance + Saldo EUR/USDT)</b>, o modo <b>v1.5 (Híbrido Bancos PIX + Cripto)</b> ou retorne ao estado <b>v1.0 (Clássico Bancos & PIX em R$)</b>. Antes de cada troca, um backup automático do estado atual é salvo.
@@ -763,6 +770,8 @@ export const ConfiguracoesScreen: React.FC = () => {
           })}
         </div>
 
+        </details>
+
         {/* Controles de Corretora Preferencial, Cotações (USDT/BRL e EUR/USDT) e Exibição de Moeda */}
         <div className="pt-[14px] border-t border-[#E2E8E4] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[12px] items-end">
           <div className="flex flex-col gap-[4px]">
@@ -772,18 +781,19 @@ export const ConfiguracoesScreen: React.FC = () => {
             >
               Minha Corretora Preferencial
             </label>
-            <select
+            <input
               id="settings-operator-exchange"
               aria-label="Corretora preferencial do operador"
-              value={operatorPreferredExchange}
-              onChange={(e) => setOperatorPreferredExchange(e.target.value)}
-              className="px-[10px] py-[8px] rounded-[8px] border border-[#C9D2CD] bg-[#FAFBFA] text-[13px] text-[#1B2421] font-semibold cursor-pointer"
-            >
-              <option value="OKX">OKX (USDT)</option>
-              <option value="Binance">Binance (USDT)</option>
-              <option value="OKX / Binance">OKX & Binance</option>
-              <option value="Bybit">Bybit (USDT)</option>
-            </select>
+              list="settings-exchange-options"
+              key={operatorPreferredExchange}
+              defaultValue={operatorPreferredExchange}
+              onBlur={(event) => { const name = event.target.value.trim(); if (name) setOperatorPreferredExchange(name); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+              className="px-[10px] py-[8px] rounded-[8px] border border-[#C9D2CD] bg-[#FAFBFA] text-[13px] text-[#1B2421] font-semibold"
+            />
+            <datalist id="settings-exchange-options">
+              {[...new Set(['OKX', 'Binance', 'Bybit', ...bankCatalog.filter((item) => item.active).map((item) => item.name)])].map((name) => <option key={name} value={name} />)}
+            </datalist>
           </div>
 
           <div className="flex flex-col gap-[4px]">

@@ -330,7 +330,7 @@ export const CatalogManagerPanel: React.FC = () => {
             Gerenciador de Casas Offshore (Cripto), Corretoras/Carteiras e Critérios Adicionais
           </h2>
           <p className="text-[13px] text-[#5E6B65] mt-[2px]">
-            Gerencie as Casas Gringas (Offshore Cripto, Clones Blaze, AsianConnect, Web3), Corretoras e Carteiras (Binance, MetaMask BEP20/ERC20) e critérios customizados (<code className="font-mono">Rollover 1x/3x</code>, <code className="font-mono">KYC Selfie/Papel</code>, <code className="font-mono">Taxas de Rede</code>).
+            Gerencie as Casas Gringas (Offshore Cripto, Clones Blaze, AsianConnect, Web3), Corretoras e Carteiras (Binance, redes configuráveis) e critérios customizados (<code className="font-mono">Rollover 1x/3x</code>, <code className="font-mono">KYC Selfie/Papel</code>, <code className="font-mono">Taxas de Rede</code>).
           </p>
         </div>
 

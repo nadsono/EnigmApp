@@ -80,7 +80,7 @@ export const SocialProofShowcase: React.FC<SocialProofShowcaseProps> = ({
             }}
             className="text-[11.5px] font-semibold text-[#0F6B5C] hover:underline cursor-pointer"
           >
-            Carregar na calculadora →
+            Preencher operação →
           </button>
         )}
       </div>
