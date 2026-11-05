@@ -116,7 +116,7 @@ export const ScrollspyScreenGroup: React.FC<ScrollspyScreenGroupProps> = ({
             id={`section_${section.id}`}
             aria-label={section.label}
             className="scroll-mt-[105px]"
-            style={{ minHeight: 'calc(100svh - 126px)' }}
+            style={{ minHeight: 'min(calc(100svh - 126px), 1040px)' }}
           >
             {section.component}
           </section>

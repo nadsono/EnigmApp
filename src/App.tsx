@@ -297,7 +297,6 @@ const EnigmaWorkspace: React.FC = () => {
           <ScrollspyScreenGroup groupId="financeiro" sections={FINANCE_SECTIONS} />
         )}
         {isOperator && activeScreen === 'custos' && <CustosLiquidoScreen />}
-        {activeScreen === 'estoque' && <EstoqueScreen />}
         {activeScreen === 'configuracoes' && <ConfiguracoesScreen />}
       </main>
     </div>

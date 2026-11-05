@@ -148,7 +148,7 @@ export const MinhaPerformanceScreen: React.FC = () => {
   return (
     <div
       className="flex flex-col justify-between gap-[28px]"
-      style={{ minHeight: 'calc(100svh - 126px)' }}
+      style={{ minHeight: 'min(calc(100svh - 126px), 1040px)' }}
     >
       <div className="flex flex-wrap justify-between items-center gap-[12px]">
         <div className="flex flex-col gap-[4px]">
